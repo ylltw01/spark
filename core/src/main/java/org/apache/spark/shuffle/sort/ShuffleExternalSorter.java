@@ -52,6 +52,10 @@ import org.apache.spark.util.Utils;
 /**
  * An external sorter that is specialized for sort-based shuffle.
  * <p>
+ *  输入的数据被追加到数据页，当所有全部写完成（或当当前线程的shuffle内存不足），内存中文件会根据他们的
+ *  partition ids排序（使用ShuffleInMemorySorter）。排序后的数据将被写值一个输入文件（如果溢写了会有多个）。
+ *  输出的文件格式与最终输入文件格式一直都是使用SortShuffleWriter写：每一个partition的数据写至单个序列化、压缩后的
+ *  流，然后能被其他的流解压缩和反序列化。
  * Incoming records are appended to data pages. When all records have been inserted (or when the
  * current thread's shuffle memory limit is reached), the in-memory records are sorted according to
  * their partition ids (using a {@link ShuffleInMemorySorter}). The sorted records are then
@@ -61,6 +65,8 @@ import org.apache.spark.util.Utils;
  * written as a single serialized, compressed stream that can be read with a new decompression and
  * deserialization stream.
  * <p>
+ * 与org.apache.spark.util.collection.ExternalSorter不一样，该sorter不会merge它溢写的文件。相反，该类在
+ * UnsafeShuffleWriter中执行，它使用特殊的合并过程，避免额外的序列化和反序列化。
  * Unlike {@link org.apache.spark.util.collection.ExternalSorter}, this sorter does not merge its
  * spill files. Instead, this merging is performed in {@link UnsafeShuffleWriter}, which uses a
  * specialized merge procedure that avoids extra serialization/deserialization.

@@ -53,6 +53,9 @@ import org.apache.spark.storage.{BlockId, DiskBlockObjectWriter}
  * want the output keys to be sorted. In a map task without map-side combine for example, you
  * probably want to pass None as the ordering to avoid extra sorting. On the other hand, if you do
  * want to do combining, having an Ordering is more efficient than not having it.
+ * 注意：如果Ordering 存在, 将会使用其用于排序, 因此, 如果你确实需要输出的数据是有序的那么可提供
+ * 除非是需要map 端聚合的情况下, 可提供 ordering, 因为在map 端聚合排序比不排序更有效率
+ * 其他情况下, 可为 ordering 参数设置为 None, 来避免排序带来的性能开销
  *
  * Users interact with this class in the following way:
  *
@@ -686,7 +689,7 @@ private[spark] class ExternalSorter[K, V, C](
       context.taskMetrics().shuffleWriteMetrics)
 
     if (spills.isEmpty) {
-      // Case where we only have in-memory data
+      // Case where we only have in-memory data 数据都存在内存中
       val collection = if (aggregator.isDefined) map else buffer
       val it = collection.destructiveSortedWritablePartitionedIterator(comparator)
       while (it.hasNext) {
@@ -699,6 +702,7 @@ private[spark] class ExternalSorter[K, V, C](
       }
     } else {
       // We must perform merge-sort; get an iterator by partition and write everything directly.
+      // 合并溢写的小文件
       for ((id, elements) <- this.partitionedIterator) {
         if (elements.hasNext) {
           for (elem <- elements) {

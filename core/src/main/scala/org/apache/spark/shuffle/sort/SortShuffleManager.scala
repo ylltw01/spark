@@ -94,6 +94,9 @@ private[spark] class SortShuffleManager(conf: SparkConf) extends ShuffleManager 
       // them at the end. This avoids doing serialization and deserialization twice to merge
       // together the spilled files, which would happen with the normal code path. The downside is
       // having multiple files open at a time and thus more memory allocated to buffers.
+      // 如果分区数小于 spark.shuffle.sort.bypassMergeThreshold 而且不需要map 端聚合，
+      // 这种方式避免了两次序列化和反序列化去合并溢写的小文件，
+      // 这种方式缺点是，需要同时打开多个文件并且需要更多的缓冲内存
       new BypassMergeSortShuffleHandle[K, V](
         shuffleId, numMaps, dependency.asInstanceOf[ShuffleDependency[K, V, V]])
     } else if (SortShuffleManager.canUseSerializedShuffle(dependency)) {
@@ -178,7 +181,7 @@ private[spark] object SortShuffleManager extends Logging {
    * buffering map outputs in a serialized form. This is an extreme defensive programming measure,
    * since it's extremely unlikely that a single shuffle produces over 16 million output partitions.
    * */
-  val MAX_SHUFFLE_OUTPUT_PARTITIONS_FOR_SERIALIZED_MODE =
+  val MAX_SHUFFLE_OUTPUT_PARTITIONS_FOR_SERIALIZED_MODE = /* SortShuffleManager 所支持的最大shuffle输出数量 */
     PackedRecordPointer.MAXIMUM_PARTITION_ID + 1
 
   /**
@@ -188,18 +191,19 @@ private[spark] object SortShuffleManager extends Logging {
   def canUseSerializedShuffle(dependency: ShuffleDependency[_, _, _]): Boolean = {
     val shufId = dependency.shuffleId
     val numPartitions = dependency.partitioner.numPartitions
-    if (!dependency.serializer.supportsRelocationOfSerializedObjects) {
+    if (!dependency.serializer.supportsRelocationOfSerializedObjects) {/** 序列化方式是否支持 Relocation,  */
+      // 序列化方式是否支持 Relocation,不是很明白,core中JavaSerializer会直接返回false,KryoSerializer会判断是否autoReset
       log.debug(s"Can't use serialized shuffle for shuffle $shufId because the serializer, " +
         s"${dependency.serializer.getClass.getName}, does not support object relocation")
       false
-    } else if (dependency.mapSideCombine) {
+    } else if (dependency.mapSideCombine) { /* 是否Map 端聚合 */
       log.debug(s"Can't use serialized shuffle for shuffle $shufId because we need to do " +
         s"map-side aggregation")
       false
     } else if (numPartitions > MAX_SHUFFLE_OUTPUT_PARTITIONS_FOR_SERIALIZED_MODE) {
       log.debug(s"Can't use serialized shuffle for shuffle $shufId because it has more than " +
         s"$MAX_SHUFFLE_OUTPUT_PARTITIONS_FOR_SERIALIZED_MODE partitions")
-      false
+      false/* partition 是否大于16777216 */
     } else {
       log.debug(s"Can use serialized shuffle for shuffle $shufId")
       true

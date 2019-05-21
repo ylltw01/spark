@@ -138,6 +138,7 @@ private[spark] class IndexShuffleBlockResolver(
       mapId: Int,
       lengths: Array[Long],
       dataTmp: File): Unit = {
+    // index文件 ***.index // index临时文件 ***.index.uuid
     val indexFile = getIndexFile(shuffleId, mapId)
     val indexTmp = Utils.tempFileWith(indexFile)
     try {

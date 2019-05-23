@@ -142,11 +142,15 @@ public class UnsafeShuffleWriter<K, V> extends ShuffleWriter<K, V> {
     this.writeMetrics = writeMetrics;
     this.taskContext = taskContext;
     this.sparkConf = sparkConf;
+    // spark.file.transferTo    该参数指定 UnsafeShuffleWriter 是否使用 nio 方式执行 spill 文件的 merge
     this.transferToEnabled = sparkConf.getBoolean("spark.file.transferTo", true);
+    // spark.shuffle.sort.initialBufferSize    4096byte
     this.initialSortBufferSize =
       (int) (long) sparkConf.get(package$.MODULE$.SHUFFLE_SORT_INIT_BUFFER_SIZE());
+    // spark.shuffle.file.buffer    32k write task 写buffer缓冲大小，大于该值溢写磁盘
     this.inputBufferSizeInBytes =
       (int) (long) sparkConf.get(package$.MODULE$.SHUFFLE_FILE_BUFFER_SIZE()) * 1024;
+    // spark.shuffle.unsafe.file.output.buffer   merge文件输出的缓冲大小   32k
     this.outputBufferSizeInBytes =
       (int) (long) sparkConf.get(package$.MODULE$.SHUFFLE_UNSAFE_FILE_OUTPUT_BUFFER_SIZE()) * 1024;
     open();
@@ -188,6 +192,7 @@ public class UnsafeShuffleWriter<K, V> extends ShuffleWriter<K, V> {
       while (records.hasNext()) {
         insertRecordIntoSorter(records.next());
       }
+      // merge 文件, 并输出
       closeAndWriteOutput();
       success = true;
     } finally {
@@ -218,7 +223,9 @@ public class UnsafeShuffleWriter<K, V> extends ShuffleWriter<K, V> {
       partitioner.numPartitions(),
       sparkConf,
       writeMetrics);
+    // 序列化buffer, 就是一个 java.io.ByteArrayOutputStream
     serBuffer = new MyByteArrayOutputStream(DEFAULT_INITIAL_SER_BUFFER_SIZE);
+    // 指定序列化输出流
     serOutputStream = serializer.serializeStream(serBuffer);
   }
 
@@ -257,14 +264,16 @@ public class UnsafeShuffleWriter<K, V> extends ShuffleWriter<K, V> {
     assert(sorter != null);
     final K key = record._1();
     final int partitionId = partitioner.getPartition(key);
+    // 序列化 buffer 清零
     serBuffer.reset();
+    // 序列化 key, value 并写入 序列化 buffer
     serOutputStream.writeKey(key, OBJECT_CLASS_TAG);
     serOutputStream.writeValue(record._2(), OBJECT_CLASS_TAG);
     serOutputStream.flush();
 
     final int serializedRecordSize = serBuffer.size();
     assert (serializedRecordSize > 0);
-
+    // 排序数据, 序列化后数据 byte,                     ,序列化后大小,        分区 id
     sorter.insertRecord(
       serBuffer.getBuf(), Platform.BYTE_ARRAY_OFFSET, serializedRecordSize, partitionId);
   }
@@ -278,12 +287,14 @@ public class UnsafeShuffleWriter<K, V> extends ShuffleWriter<K, V> {
   /**
    * Merge zero or more spill files together, choosing the fastest merging strategy based on the
    * number of spills and the IO compression codec.
-   *
+   * outputFile 临时文件
    * @return the partition lengths in the merged file.
    */
   private long[] mergeSpills(SpillInfo[] spills, File outputFile) throws IOException {
+    // 是否开启shuffle 压缩   spark.shuffle.compress  开启后将使用 spark.io.compression.codec
     final boolean compressionEnabled = (boolean) sparkConf.get(package$.MODULE$.SHUFFLE_COMPRESS());
     final CompressionCodec compressionCodec = CompressionCodec$.MODULE$.createCodec(sparkConf);
+    // spark.shuffle.unsafe.fastMergeEnabled 是否启用 fast merge
     final boolean fastMergeEnabled =
       (boolean) sparkConf.get(package$.MODULE$.SHUFFLE_UNDAFE_FAST_MERGE_ENABLE());
     final boolean fastMergeIsSupported = !compressionEnabled ||

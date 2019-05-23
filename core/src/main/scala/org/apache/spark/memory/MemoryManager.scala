@@ -225,7 +225,9 @@ private[spark] abstract class MemoryManager(
    * sun.misc.Unsafe.
    */
   final val tungstenMemoryMode: MemoryMode = {
+    // spark.memory.offHeap.enabled 默认false，即使用堆内内存
     if (conf.get(MEMORY_OFFHEAP_ENABLED)) {
+      // spark.memory.offHeap.size 堆外内存大小，不能为0
       require(conf.get(MEMORY_OFFHEAP_SIZE) > 0,
         "spark.memory.offHeap.size must be > 0 when spark.memory.offHeap.enabled == true")
       require(Platform.unaligned(),
@@ -255,6 +257,7 @@ private[spark] abstract class MemoryManager(
     }
     val size = ByteArrayMethods.nextPowerOf2(maxTungstenMemory / cores / safetyFactor)
     val default = math.min(maxPageSize, math.max(minPageSize, size))
+// 如果spark.buffer.pageSize 未指定, 则为内存大小除以核数除以safetyFactor(16)得到靠近2的幂值, 在1 - 64M 之间
     conf.get(BUFFER_PAGESIZE).getOrElse(default)
   }
 

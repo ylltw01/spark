@@ -78,6 +78,7 @@ final class ShuffleInMemorySorter {
   }
 
   private int getUsableCapacity() {
+     // 如果是基数排序则需要array 长度2倍的空间, tim sort 则需要1.5倍
     // Radix sort requires same amount of used memory as buffer, Tim sort requires
     // half of the used memory as buffer.
     return (int) (array.size() / (useRadixSort ? 2 : 1.5));

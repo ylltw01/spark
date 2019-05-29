@@ -50,11 +50,13 @@ private[spark] abstract class Spillable[C](taskMemoryManager: TaskMemoryManager)
 
   // Initial threshold for the size of a collection before we start tracking its memory usage
   // For testing only
+  // spark.shuffle.spill.initialMemoryThreshold   5 * 1024 * 1024
   private[this] val initialMemoryThreshold: Long =
     SparkEnv.get.conf.get(SHUFFLE_SPILL_INITIAL_MEM_THRESHOLD)
 
   // Force this collection to spill when there are this many elements in memory
   // For testing only
+  // spark.shuffle.spill.numElementsForceSpillThreshold  Integer.MAX_VALUE
   private[this] val numElementsForceSpillThreshold: Int =
     SparkEnv.get.conf.get(SHUFFLE_SPILL_NUM_ELEMENTS_FORCE_SPILL_THRESHOLD)
 
@@ -81,23 +83,34 @@ private[spark] abstract class Spillable[C](taskMemoryManager: TaskMemoryManager)
    */
   protected def maybeSpill(collection: C, currentMemory: Long): Boolean = {
     var shouldSpill = false
+    // 写入的条数是 32 的倍数并且使用的内存大于等于 spark.shuffle.spill.initialMemoryThreshold = 5 * 1024 * 1024
     if (elementsRead % 32 == 0 && currentMemory >= myMemoryThreshold) {
       // Claim up to double our current memory from the shuffle memory pool
+      // 计算需要当前使用的 2 倍的内存值
       val amountToRequest = 2 * currentMemory - myMemoryThreshold
+      // 申请所需内存
       val granted = acquireMemory(amountToRequest)
       myMemoryThreshold += granted
       // If we were granted too little memory to grow further (either tryToAcquire returned 0,
       // or we already had more memory than myMemoryThreshold), spill the current collection
+      // 如果当前消耗的内存大于等于当前能申请到的所有内存, 则需 spill
       shouldSpill = currentMemory >= myMemoryThreshold
     }
+    // 无法申请到更多内存或当前写入的数据条数大于  spark.shuffle.spill.numElementsForceSpillThreshold = Integer.MAX_VALUE
     shouldSpill = shouldSpill || _elementsRead > numElementsForceSpillThreshold
     // Actually spill
     if (shouldSpill) {
+      // spill 次数加一
       _spillCount += 1
+      // 记录日志
       logSpillage(currentMemory)
+      // 溢出数据
       spill(collection)
+      // 重置计数器
       _elementsRead = 0
+      // 记录溢出内存总量
       _memoryBytesSpilled += currentMemory
+      // 释放内存
       releaseMemory()
     }
     shouldSpill

@@ -146,6 +146,11 @@ private[spark] class ExternalSorter[K, V, C](
   // user. (A partial ordering means that equal keys have comparator.compare(k, k) = 0, but some
   // non-equal keys also have this, so we need to do a later pass to find truly equal keys).
   // Note that we ignore this if no aggregator and no ordering are given.
+  // 基于为 key 实现的一个在每个分区内排序的比较器(comparator) 去实现聚合或者分区排序.
+  // 如果 user 未提供 odering 则会默认使用 hash code 进行排序
+  // 默认基于 hash 的排序对于相同的 key comparator.compare(k, k) = 0, 但是由于可能存在 hash 冲突,
+  // 因此也有可能对于不同的 key 也会相同, 所以需要在后续去找到真实相等的 key
+  // 值得注意的是: 如果对于不需要聚合和排序的将被忽略
   private val keyComparator: Comparator[K] = ordering.getOrElse((a: K, b: K) => {
     val h1 = if (a == null) 0 else a.hashCode()
     val h2 = if (b == null) 0 else b.hashCode()
@@ -180,27 +185,36 @@ private[spark] class ExternalSorter[K, V, C](
   def insertAll(records: Iterator[Product2[K, V]]): Unit = {
     // TODO: stop combining if we find that the reduction factor isn't high
     val shouldCombine = aggregator.isDefined
-
+    // 需要执行 map 端聚合
     if (shouldCombine) {
       // Combine values in-memory first using our AppendOnlyMap
+      // 聚合 mergeValue 用于 merge 函数逻辑, 相同的 key 聚合
       val mergeValue = aggregator.get.mergeValue
+      // createCombiner 初始 merge, 不同 key 创建新的聚合 key
       val createCombiner = aggregator.get.createCombiner
       var kv: Product2[K, V] = null
+      // PartitionedAppendOnlyMap 针对 key 的操作函数
       val update = (hadValue: Boolean, oldValue: C) => {
         if (hadValue) mergeValue(oldValue, kv._2) else createCombiner(kv._2)
       }
       while (records.hasNext) {
+        // 计数器加 1
         addElementsRead()
         kv = records.next()
+        // 将数据以(partitionId, key) 为 key, 执行 update 函数的结果为 value 写入 PartitionedAppendOnlyMap
         map.changeValue((getPartition(kv._1), kv._1), update)
+        // 根据内存使用量, 判断是否需要溢出, 如果需要则溢出
         maybeSpillCollection(usingMap = true)
       }
     } else {
       // Stick values into our buffer
       while (records.hasNext) {
+        // 计数器加 1
         addElementsRead()
         val kv = records.next()
+        // 将数据写入 PartitionedPairBuffer , 参数分别是: partitionId, key, value
         buffer.insert(getPartition(kv._1), kv._1, kv._2.asInstanceOf[C])
+        // 根据内存使用量, 判断是否需要溢出, 如果需要则溢出
         maybeSpillCollection(usingMap = false)
       }
     }
@@ -214,13 +228,19 @@ private[spark] class ExternalSorter[K, V, C](
   private def maybeSpillCollection(usingMap: Boolean): Unit = {
     var estimatedSize = 0L
     if (usingMap) {
+      // 以字节为单位估算当前数据占用的空间
       estimatedSize = map.estimateSize()
+      // 是否达到溢出的条件, 溢出会返回true
       if (maybeSpill(map, estimatedSize)) {
+        // 重置 PartitionedAppendOnlyMap
         map = new PartitionedAppendOnlyMap[K, C]
       }
     } else {
+      // 以字节为单位估算当前数据占用的空间
       estimatedSize = buffer.estimateSize()
+      // 是否达到溢出的条件, 溢出会返回true
       if (maybeSpill(buffer, estimatedSize)) {
+        // 重置 PartitionedPairBuffer
         buffer = new PartitionedPairBuffer[K, C]
       }
     }
@@ -237,7 +257,9 @@ private[spark] class ExternalSorter[K, V, C](
    * @param collection whichever collection we're using (map or buffer)
    */
   override protected[this] def spill(collection: WritablePartitionedPairCollection[K, C]): Unit = {
+    // 返回各分区排序后的迭代器
     val inMemoryIterator = collection.destructiveSortedWritablePartitionedIterator(comparator)
+    // 溢写磁盘并返回文件
     val spillFile = spillMemoryIteratorToDisk(inMemoryIterator)
     spills += spillFile
   }
@@ -268,11 +290,14 @@ private[spark] class ExternalSorter[K, V, C](
     // Because these files may be read during shuffle, their compression must be controlled by
     // spark.shuffle.compress instead of spark.shuffle.spill.compress, so we need to use
     // createTempShuffleBlock here; see SPARK-3426 for more context.
+    // 生成此次 spill 的 blockId 和 file
     val (blockId, file) = diskBlockManager.createTempShuffleBlock()
 
     // These variables are reset after each flush
+    // 就是一个计数器
     var objectsWritten: Long = 0
     val spillMetrics: ShuffleWriteMetrics = new ShuffleWriteMetrics
+    // 输出 DiskBlockObjectWriter
     val writer: DiskBlockObjectWriter =
       blockManager.getDiskWriter(blockId, file, serInstance, fileBufferSize, spillMetrics)
 
@@ -280,6 +305,7 @@ private[spark] class ExternalSorter[K, V, C](
     val batchSizes = new ArrayBuffer[Long]
 
     // How many elements we have in each partition
+    // 记录每个分区的条数
     val elementsPerPartition = new Array[Long](numPartitions)
 
     // Flush the disk writer's contents to disk, and update relevant variables.
@@ -294,13 +320,16 @@ private[spark] class ExternalSorter[K, V, C](
     var success = false
     try {
       while (inMemoryIterator.hasNext) {
+        // 获取 PartitionId
         val partitionId = inMemoryIterator.nextPartition()
         require(partitionId >= 0 && partitionId < numPartitions,
           s"partition Id: ${partitionId} should be in the range [0, ${numPartitions})")
+        // 写出每条记录 (key, value)
         inMemoryIterator.writeNext(writer)
+        // 记录每个分区的条数
         elementsPerPartition(partitionId) += 1
         objectsWritten += 1
-
+        // 如果写的条数大于 spark.shuffle.spill.batchSize = 10000 则 flush
         if (objectsWritten == serializerBatchSize) {
           flush()
         }
@@ -325,7 +354,7 @@ private[spark] class ExternalSorter[K, V, C](
         }
       }
     }
-
+    // file: 此次 spill 文件实例,
     SpilledFile(file, blockId, batchSizes.toArray, elementsPerPartition)
   }
 

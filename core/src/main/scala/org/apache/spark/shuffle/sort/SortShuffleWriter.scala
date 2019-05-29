@@ -49,30 +49,37 @@ private[spark] class SortShuffleWriter[K, V, C](
 
   /** Write a bunch of records to this task's output */
   override def write(records: Iterator[Product2[K, V]]): Unit = {
+    // 初始化 sorter
     sorter = if (dep.mapSideCombine) {
+      // 对于需要 map 端聚合的, 传入aggregator 聚合函数, ordering 排序函数
       new ExternalSorter[K, V, C](
         context, dep.aggregator, Some(dep.partitioner), dep.keyOrdering, dep.serializer)
     } else {
       // In this case we pass neither an aggregator nor an ordering to the sorter, because we don't
       // care whether the keys get sorted in each partition; that will be done on the reduce side
       // if the operation being run is sortByKey.
+      // 对于不需要 map 端聚合的, aggreagator 和 ordering 都为 none, 因为其不需要 key 在每个分区有序
       new ExternalSorter[K, V, V](
         context, aggregator = None, Some(dep.partitioner), ordering = None, dep.serializer)
     }
+    // 写入所有数据至 ExternalSorter
     sorter.insertAll(records)
 
     // Don't bother including the time to open the merged output file in the shuffle write time,
     // because it just opens a single file, so is typically too fast to measure accurately
     // (see SPARK-3570).
-    // output file
+    // 生成 shuffle 输出文件名
     val output = shuffleBlockResolver.getDataFile(dep.shuffleId, mapId)
-    //  output.uuid
+    // 生成 shuffle 输出临时文件名 output.uuid
     val tmp = Utils.tempFileWith(output)
     try {
       // Format of the shuffle block ids (including data and index)
+      // 生成 blockId
       val blockId = ShuffleBlockId(dep.shuffleId, mapId, IndexShuffleBlockResolver.NOOP_REDUCE_ID)
       // merge spills, write to tmp, return file index
+      // merge 溢出的 shuffle 文件, 并写至 tmp 文件, 返回每个 reduce 分区所在的文件中的偏移量
       val partitionLengths = sorter.writePartitionedFile(blockId, tmp)
+      // 重命名shuffle 临时文件, 并生成 index 文件
       shuffleBlockResolver.writeIndexFileAndCommit(dep.shuffleId, mapId, partitionLengths, tmp)
       mapStatus = MapStatus(blockManager.shuffleServerId, partitionLengths)
     } finally {

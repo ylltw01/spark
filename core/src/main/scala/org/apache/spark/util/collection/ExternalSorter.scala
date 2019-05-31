@@ -674,6 +674,7 @@ private[spark] class ExternalSorter[K, V, C](
    */
   def partitionedIterator: Iterator[(Int, Iterator[Product2[K, C]])] = {
     val usingMap = aggregator.isDefined
+    // 如果需要 map 端聚合则数据存储在 map 中, 否则存储在 buffer 中
     val collection: WritablePartitionedPairCollection[K, C] = if (usingMap) map else buffer
     if (spills.isEmpty) {
       // Special case: if we have only in-memory data, we don't need to merge streams, and perhaps
@@ -688,6 +689,7 @@ private[spark] class ExternalSorter[K, V, C](
       }
     } else {
       // Merge spilled and in-memory data
+      // Merge spills为溢写的文件集合, destructiveIterator 将会对还存储在内存中的数据进行排序当然还是优先按照分区排序
       merge(spills, destructiveIterator(
         collection.partitionedDestructiveSortedIterator(comparator)))
     }
@@ -714,18 +716,23 @@ private[spark] class ExternalSorter[K, V, C](
 
     // Track location of each range in the output file
     val lengths = new Array[Long](numPartitions)
+    // shuffle 输出文件
     val writer = blockManager.getDiskWriter(blockId, outputFile, serInstance, fileBufferSize,
       context.taskMetrics().shuffleWriteMetrics)
 
     if (spills.isEmpty) {
-      // Case where we only have in-memory data 数据都存在内存中
+      // Case where we only have in-memory data
+      // 数据都存在内存中
       val collection = if (aggregator.isDefined) map else buffer
+      // 先按分区排序, 分区中数据根据 key 进行排序
       val it = collection.destructiveSortedWritablePartitionedIterator(comparator)
       while (it.hasNext) {
+        // 依次写出每个分区数据
         val partitionId = it.nextPartition()
         while (it.hasNext && it.nextPartition() == partitionId) {
           it.writeNext(writer)
         }
+        // 返回每个分区在文件中的偏移量
         val segment = writer.commitAndGet()
         lengths(partitionId) = segment.length
       }

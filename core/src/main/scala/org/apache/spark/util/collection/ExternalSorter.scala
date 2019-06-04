@@ -370,18 +370,22 @@ private[spark] class ExternalSorter[K, V, C](
    */
   private def merge(spills: Seq[SpilledFile], inMemory: Iterator[((Int, K), C)])
       : Iterator[(Int, Iterator[Product2[K, C]])] = {
+    // 读取每个 spill 文件的 reader
     val readers = spills.map(new SpillReader(_))
     val inMemBuffered = inMemory.buffered
+    // 将 spill 文件中和在内存中的数据根据 partition id 分组并返回 (partitionId, iterator)[]
     (0 until numPartitions).iterator.map { p =>
       val inMemIterator = new IteratorForPartition(p, inMemBuffered)
       val iterators = readers.map(_.readNextPartition()) ++ Seq(inMemIterator)
       if (aggregator.isDefined) {
         // Perform partial aggregation across partitions
+        // 根据 key 聚合并
         (p, mergeWithAggregation(
           iterators, aggregator.get.mergeCombiners, keyComparator, ordering.isDefined))
       } else if (ordering.isDefined) {
         // No aggregator given, but we have an ordering (e.g. used by reduce tasks in sortByKey);
         // sort the elements without trying to merge them
+        // 根据 key 排序但不聚合
         (p, mergeSort(iterators, ordering.get))
       } else {
         (p, iterators.iterator.flatten)
@@ -677,19 +681,22 @@ private[spark] class ExternalSorter[K, V, C](
     // 如果需要 map 端聚合则数据存储在 map 中, 否则存储在 buffer 中
     val collection: WritablePartitionedPairCollection[K, C] = if (usingMap) map else buffer
     if (spills.isEmpty) {
+      // 数据都存在内存中, 未spill到磁盘中
       // Special case: if we have only in-memory data, we don't need to merge streams, and perhaps
       // we don't even need to sort by anything other than partition ID
       if (ordering.isEmpty) {
         // The user hasn't requested sorted keys, so only sort by partition ID, not key
+        // 排序方法为空, 则表示仅需要按照 partition id 排序, 不需要按照 key 排序, 然后根据 partitionId 分组, 并返回 (id, Iterator)
         groupByPartition(destructiveIterator(collection.partitionedDestructiveSortedIterator(None)))
       } else {
         // We do need to sort by both partition ID and key
+        // 首先根据 partition id 排序, 然后根据 key 排序, 然后根据 partitionId 分组, 并返回 (id, Iterator)
         groupByPartition(destructiveIterator(
           collection.partitionedDestructiveSortedIterator(Some(keyComparator))))
       }
     } else {
       // Merge spilled and in-memory data
-      // Merge spills为溢写的文件集合, destructiveIterator 将会对还存储在内存中的数据进行排序当然还是优先按照分区排序
+      // Merge spills为spill的文件集合, destructiveIterator 将会对还存储在内存中的数据进行排序当然还是优先按照分区排序
       merge(spills, destructiveIterator(
         collection.partitionedDestructiveSortedIterator(comparator)))
     }
@@ -738,12 +745,14 @@ private[spark] class ExternalSorter[K, V, C](
       }
     } else {
       // We must perform merge-sort; get an iterator by partition and write everything directly.
-      // 合并溢写的小文件
+      // 合并 spill 的小文件
       for ((id, elements) <- this.partitionedIterator) {
         if (elements.hasNext) {
           for (elem <- elements) {
+            // 写出每个分区的数据
             writer.write(elem._1, elem._2)
           }
+          // 获取每个分区在文件中的位置
           val segment = writer.commitAndGet()
           lengths(id) = segment.length
         }

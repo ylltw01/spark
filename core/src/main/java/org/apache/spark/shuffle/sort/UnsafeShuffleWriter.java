@@ -223,7 +223,7 @@ public class UnsafeShuffleWriter<K, V> extends ShuffleWriter<K, V> {
       partitioner.numPartitions(),
       sparkConf,
       writeMetrics);
-    // 序列化buffer, 就是一个 java.io.ByteArrayOutputStream
+    // 序列化输出流, 就是一个 java.io.ByteArrayOutputStream, 默认为 1024 * 1024
     serBuffer = new MyByteArrayOutputStream(DEFAULT_INITIAL_SER_BUFFER_SIZE);
     // 指定序列化输出流
     serOutputStream = serializer.serializeStream(serBuffer);
@@ -263,14 +263,15 @@ public class UnsafeShuffleWriter<K, V> extends ShuffleWriter<K, V> {
   void insertRecordIntoSorter(Product2<K, V> record) throws IOException {
     assert(sorter != null);
     final K key = record._1();
+    // 根据输入的 key 以及分区方法得到该 key 所对应的 partitionId
     final int partitionId = partitioner.getPartition(key);
-    // 序列化 buffer 清零
+    // 重置 ByteArrayOutputStream , 重用已分配的内存
     serBuffer.reset();
     // 序列化 key, value 并写入 序列化 buffer
     serOutputStream.writeKey(key, OBJECT_CLASS_TAG);
     serOutputStream.writeValue(record._2(), OBJECT_CLASS_TAG);
     serOutputStream.flush();
-
+    // 返回当前 OutputStream 中 buff 的大小
     final int serializedRecordSize = serBuffer.size();
     assert (serializedRecordSize > 0);
     // 排序数据, 序列化后数据 byte,                     ,序列化后大小,        分区 id

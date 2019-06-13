@@ -30,7 +30,7 @@ public final class Platform {
   private static final Unsafe _UNSAFE;
 
   public static final int BOOLEAN_ARRAY_OFFSET;
-
+  // 获取 byte[] 对象头的长度
   public static final int BYTE_ARRAY_OFFSET;
 
   public static final int SHORT_ARRAY_OFFSET;

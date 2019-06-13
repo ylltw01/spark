@@ -274,7 +274,7 @@ public class UnsafeShuffleWriter<K, V> extends ShuffleWriter<K, V> {
     // 返回当前 OutputStream 中 buff 的大小
     final int serializedRecordSize = serBuffer.size();
     assert (serializedRecordSize > 0);
-    // 排序数据, 序列化后数据 byte,                     ,序列化后大小,        分区 id
+    // 排序数据, 序列化后数据 byte,      byte[] 对象头长度 ,序列化后大小,        分区 id
     sorter.insertRecord(
       serBuffer.getBuf(), Platform.BYTE_ARRAY_OFFSET, serializedRecordSize, partitionId);
   }

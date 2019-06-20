@@ -190,9 +190,10 @@ public class UnsafeShuffleWriter<K, V> extends ShuffleWriter<K, V> {
     boolean success = false;
     try {
       while (records.hasNext()) {
+        // 排序并 spill 文件
         insertRecordIntoSorter(records.next());
       }
-      // merge 文件, 并输出
+      // merge spill 文件, 并输出
       closeAndWriteOutput();
       success = true;
     } finally {
@@ -235,23 +236,30 @@ public class UnsafeShuffleWriter<K, V> extends ShuffleWriter<K, V> {
     updatePeakMemoryUsed();
     serBuffer = null;
     serOutputStream = null;
+    // 将还存在内存中的数据 spill 至磁盘并返回 shuffle 所有 spill 信息
     final SpillInfo[] spills = sorter.closeAndGetSpills();
     sorter = null;
     final long[] partitionLengths;
+    // 生成此次 shuffle 的 File
     final File output = shuffleBlockResolver.getDataFile(shuffleId, mapId);
+    // 生成临时 File
     final File tmp = Utils.tempFileWith(output);
     try {
       try {
+        // 核心方法, 归并所有 spill 文件, 合并为一个 temp 文件, 并返回每个分区所在该文件的 offset
         partitionLengths = mergeSpills(spills, tmp);
       } finally {
+        // 清理 spill 的文件
         for (SpillInfo spill : spills) {
           if (spill.file.exists() && ! spill.file.delete()) {
             logger.error("Error while deleting spill file {}", spill.file.getPath());
           }
         }
       }
+      // 写包含每个分区的索引文件和修改 tmp 文件为 output 文件
       shuffleBlockResolver.writeIndexFileAndCommit(shuffleId, mapId, partitionLengths, tmp);
     } finally {
+      // 清理 tmp 文件
       if (tmp.exists() && !tmp.delete()) {
         logger.error("Error while deleting temp file {}", tmp.getAbsolutePath());
       }
@@ -292,22 +300,27 @@ public class UnsafeShuffleWriter<K, V> extends ShuffleWriter<K, V> {
    * @return the partition lengths in the merged file.
    */
   private long[] mergeSpills(SpillInfo[] spills, File outputFile) throws IOException {
-    // 是否开启shuffle 压缩   spark.shuffle.compress  开启后将使用 spark.io.compression.codec
+    // 是否开启shuffle 压缩   spark.shuffle.compress  默认为 true 开启后将使用 spark.io.compression.codec
     final boolean compressionEnabled = (boolean) sparkConf.get(package$.MODULE$.SHUFFLE_COMPRESS());
+    // 获取压缩类, 即 spark.io.compression.codec 配置, 默认为 lz4 ( LZ4CompressionCodec 类 )
     final CompressionCodec compressionCodec = CompressionCodec$.MODULE$.createCodec(sparkConf);
-    // spark.shuffle.unsafe.fastMergeEnabled 是否启用 fast merge
+    // spark.shuffle.unsafe.fastMergeEnabled 是否启用 fast merge 默认为 true
     final boolean fastMergeEnabled =
       (boolean) sparkConf.get(package$.MODULE$.SHUFFLE_UNDAFE_FAST_MERGE_ENABLE());
+    // 压缩类, 是否支持 fast merge, 目前 Spark 的 4 种压缩都支持
     final boolean fastMergeIsSupported = !compressionEnabled ||
       CompressionCodec$.MODULE$.supportsConcatenationOfSerializedStreams(compressionCodec);
+    // 是否启用 io 加密  spark.io.encryption.enabled  默认 false
     final boolean encryptionEnabled = blockManager.serializerManager().encryptionEnabled();
     try {
       if (spills.length == 0) {
+        // spill 文件为空, 则生成一个空文件
         new FileOutputStream(outputFile).close(); // Create an empty file
         return new long[partitioner.numPartitions()];
       } else if (spills.length == 1) {
         // Here, we don't need to perform any metrics updates because the bytes written to this
         // output file would have already been counted as shuffle bytes written.
+        // spill 文件仅一个, 则直接将其移动到输出文件. 并返回该文件中每个分区的偏移量
         Files.move(spills[0].file, outputFile);
         return spills[0].partitionLengths;
       } else {
@@ -322,19 +335,24 @@ public class UnsafeShuffleWriter<K, V> extends ShuffleWriter<K, V> {
         // strategies use different IO techniques.  We count IO during merge towards the shuffle
         // shuffle write time, which appears to be consistent with the "not bypassing merge-sort"
         // branch in ExternalSorter.
+        // 开启了 fastMerge 且 压缩类支持 fastMerge
         if (fastMergeEnabled && fastMergeIsSupported) {
           // Compression is disabled or we are using an IO compression codec that supports
           // decompression of concatenated compressed streams, so we can perform a fast spill merge
           // that doesn't need to interpret the spilled bytes.
+          // 使用 nio transferTo 且 非 io 加密
           if (transferToEnabled && !encryptionEnabled) {
             logger.debug("Using transferTo-based fast merge");
+            // 使用 nio  transferTo 按分区进行 merge 所有 spill 文件至 outputFile
             partitionLengths = mergeSpillsWithTransferTo(spills, outputFile);
           } else {
             logger.debug("Using fileStream-based fast merge");
+            // 使用 nio  transferTo 按分区进行 merge 所有 spill 文件至 outputFile
             partitionLengths = mergeSpillsWithFileStream(spills, outputFile, null);
           }
         } else {
           logger.debug("Using slow merge");
+          // 使用 nio  transferTo 按分区进行 merge 所有 spill 文件至 outputFile
           partitionLengths = mergeSpillsWithFileStream(spills, outputFile, compressionCodec);
         }
         // When closing an UnsafeShuffleExternalSorter that has already spilled once but also has
@@ -375,20 +393,25 @@ public class UnsafeShuffleWriter<K, V> extends ShuffleWriter<K, V> {
       File outputFile,
       @Nullable CompressionCodec compressionCodec) throws IOException {
     assert (spills.length >= 2);
+    // 分区数
     final int numPartitions = partitioner.numPartitions();
+    // 初始化用于封装返回每个 partition 在输出的文件偏移量
     final long[] partitionLengths = new long[numPartitions];
+    // 初始化 spill 文件 InputStream 数组
     final InputStream[] spillInputStreams = new InputStream[spills.length];
-
+    // 初始化 outputFile OutputStream, outputBufferSizeInBytes = spark.shuffle.unsafe.file.output.buffer   merge文件输出的缓冲大小   32k
     final OutputStream bos = new BufferedOutputStream(
             new FileOutputStream(outputFile),
             outputBufferSizeInBytes);
     // Use a counting output stream to avoid having to close the underlying file and ask
     // the file system for its size after each partition is written.
+    // 使用 CountingOutputStream 包装 OutputStream, CountingOutputStream 提供对输出流数据的统计
     final CountingOutputStream mergedFileOutputStream = new CountingOutputStream(bos);
 
     boolean threwException = true;
     try {
       for (int i = 0; i < spills.length; i++) {
+        // 使用   NioBufferedFileInputStream 包装类初始化每个 spill 文件 InputStream
         spillInputStreams[i] = new NioBufferedFileInputStream(
             spills[i].file,
             inputBufferSizeInBytes);
@@ -398,23 +421,31 @@ public class UnsafeShuffleWriter<K, V> extends ShuffleWriter<K, V> {
         // Shield the underlying output stream from close() and flush() calls, so that we can close
         // the higher level streams to make sure all data is really flushed and internal state is
         // cleaned.
+        // 封装 mergedFileOutputStream 为 CloseAndFlushShieldOutputStream 该类复写了 close 和 flush 方法
         OutputStream partitionOutput = new CloseAndFlushShieldOutputStream(
           new TimeTrackingOutputStream(writeMetrics, mergedFileOutputStream));
+        // 如果启用了加密, 则提供加密输出
         partitionOutput = blockManager.serializerManager().wrapForEncryption(partitionOutput);
         if (compressionCodec != null) {
+          // 如果启用了压缩, 则包装压缩类
           partitionOutput = compressionCodec.compressedOutputStream(partitionOutput);
         }
         for (int i = 0; i < spills.length; i++) {
+          // 获取当前 partition 在该 spill[i] 文件中的偏移量
           final long partitionLengthInSpill = spills[i].partitionLengths[partition];
           if (partitionLengthInSpill > 0) {
+            // 读取 spill 中当前 partition 的偏移量
             InputStream partitionInputStream = new LimitedInputStream(spillInputStreams[i],
               partitionLengthInSpill, false);
             try {
+              // 加密
               partitionInputStream = blockManager.serializerManager().wrapForEncryption(
                 partitionInputStream);
               if (compressionCodec != null) {
+                // 压缩
                 partitionInputStream = compressionCodec.compressedInputStream(partitionInputStream);
               }
+              // copy 至 outputStream
               ByteStreams.copy(partitionInputStream, partitionOutput);
             } finally {
               partitionInputStream.close();
@@ -446,35 +477,46 @@ public class UnsafeShuffleWriter<K, V> extends ShuffleWriter<K, V> {
    */
   private long[] mergeSpillsWithTransferTo(SpillInfo[] spills, File outputFile) throws IOException {
     assert (spills.length >= 2);
+    // 分区数
     final int numPartitions = partitioner.numPartitions();
+    // 初始化每个 partition 在 outputFile 文件中的偏移量的数组
     final long[] partitionLengths = new long[numPartitions];
+    // 初始化每个 spill 文件的 channel 数组
     final FileChannel[] spillInputChannels = new FileChannel[spills.length];
+    // 初始化每个 spill 文件的 offset 计数器数组
     final long[] spillInputChannelPositions = new long[spills.length];
     FileChannel mergedFileOutputChannel = null;
 
     boolean threwException = true;
     try {
+      // 初始化每个 spill 文件的 channel 对象
       for (int i = 0; i < spills.length; i++) {
         spillInputChannels[i] = new FileInputStream(spills[i].file).getChannel();
       }
       // This file needs to opened in append mode in order to work around a Linux kernel bug that
       // affects transferTo; see SPARK-3948 for more details.
+      // 初始化输出文件 channel 对象
       mergedFileOutputChannel = new FileOutputStream(outputFile, true).getChannel();
-
+      // 输出文件的长度计数器
       long bytesWrittenToMergedFile = 0;
       for (int partition = 0; partition < numPartitions; partition++) {
         for (int i = 0; i < spills.length; i++) {
+          // 获取该 partition 在该 spill 文件中的长度
           final long partitionLengthInSpill = spills[i].partitionLengths[partition];
           final FileChannel spillInputChannel = spillInputChannels[i];
           final long writeStartTime = System.nanoTime();
+          // 使用 nio transferTo 拷贝 spill 文件中指定长度的数据至输出文件 channel
           Utils.copyFileStreamNIO(
             spillInputChannel,
             mergedFileOutputChannel,
             spillInputChannelPositions[i],
             partitionLengthInSpill);
+          // spill 文件长度计数器累加
           spillInputChannelPositions[i] += partitionLengthInSpill;
           writeMetrics.incWriteTime(System.nanoTime() - writeStartTime);
+          // 输出文件的长度计数器累加
           bytesWrittenToMergedFile += partitionLengthInSpill;
+          // 记录输出文件中, 每个 partition 的长度累加
           partitionLengths[partition] += partitionLengthInSpill;
         }
       }
@@ -482,6 +524,7 @@ public class UnsafeShuffleWriter<K, V> extends ShuffleWriter<K, V> {
       // exception if it is incorrect. The position will not be increased to the expected length
       // after calling transferTo in kernel version 2.6.32. This issue is described at
       // https://bugs.openjdk.java.net/browse/JDK-7052359 and SPARK-3948.
+      // 校验输出的文件 position 是否与计数器的一致
       if (mergedFileOutputChannel.position() != bytesWrittenToMergedFile) {
         throw new IOException(
           "Current position " + mergedFileOutputChannel.position() + " does not equal expected " +
@@ -495,6 +538,7 @@ public class UnsafeShuffleWriter<K, V> extends ShuffleWriter<K, V> {
     } finally {
       // To avoid masking exceptions that caused us to prematurely enter the finally block, only
       // throw exceptions during cleanup if threwException == false.
+      // 校验每个 spill 文件position 是否与每个 spill 文件输出的计数器长度一致, 并关闭所有 spill channel
       for (int i = 0; i < spills.length; i++) {
         assert(spillInputChannelPositions[i] == spills[i].file.length());
         Closeables.close(spillInputChannels[i], threwException);

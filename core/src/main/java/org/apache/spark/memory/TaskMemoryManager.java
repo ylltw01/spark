@@ -132,12 +132,14 @@ public class TaskMemoryManager {
   /**
    * Acquire N bytes of memory for a consumer. If there is no enough memory, it will call
    * spill() of consumers to release more memory.
+   * 1. MemoryConsumer 137 行, Spillable 申请内存； 2. allocatePage 289 行 申请 page 大小
    *
    * @return number of bytes successfully granted (<= N).
    */
   public long acquireExecutionMemory(long required, MemoryConsumer consumer) {
     assert(required >= 0);
     assert(consumer != null);
+    // 内存模式, ON_HEAP, OFF_HEAP
     MemoryMode mode = consumer.getMode();
     // If we are allocating Tungsten pages off-heap and receive a request to allocate on-heap
     // memory here, then it may not make sense to spill since that would only end up freeing
@@ -148,11 +150,13 @@ public class TaskMemoryManager {
 
       // Try to release memory from other consumers first, then we can reduce the frequency of
       // spilling, avoid to have too many spilled files.
+      // 如果申请到的内存不够 required
       if (got < required) {
         // Call spill() on other consumers to release memory
         // Sort the consumers according their memory usage. So we avoid spilling the same consumer
         // which is just spilled in last few times and re-spilling on it will produce many small
         // spill files.
+        // 按照内存使用量对已存在的 consumers 进行排序
         TreeMap<Long, List<MemoryConsumer>> sortedConsumers = new TreeMap<>();
         for (MemoryConsumer c: consumers) {
           if (c != consumer && c.getUsed() > 0 && c.getMode() == mode) {
@@ -164,25 +168,33 @@ public class TaskMemoryManager {
         }
         while (!sortedConsumers.isEmpty()) {
           // Get the consumer using the least memory more than the remaining required memory.
+          // 返回内存使用量最接近 required - got 的 MemoryConsumer
           Map.Entry<Long, List<MemoryConsumer>> currentEntry =
             sortedConsumers.ceilingEntry(required - got);
           // No consumer has used memory more than the remaining required memory.
           // Get the consumer of largest used memory.
+          // 如果未获取到, 则会默认去获取内存使用量最大的 MemoryConsumer
           if (currentEntry == null) {
             currentEntry = sortedConsumers.lastEntry();
           }
+          // 获取 MemoryConsumer
           List<MemoryConsumer> cList = currentEntry.getValue();
           MemoryConsumer c = cList.get(cList.size() - 1);
           try {
+            // 调用该 MemoryConsumer spill 方法, 释放掉内存, 返回释放的内存量. 实现类: Spillable 用于 SortShuffleWrite ; 实现类: ShuffleExternalSorter 用于 UnsafeShuffleWrite
             long released = c.spill(required - got, consumer);
             if (released > 0) {
+               // 已释放掉内存
               logger.debug("Task {} released {} from {} for {}", taskAttemptId,
                 Utils.bytesToString(released), c, consumer);
+              // 在 MemoryConsumer spill 释放掉内存之后, 再次去申请内存
               got += memoryManager.acquireExecutionMemory(required - got, taskAttemptId, mode);
+              // 如果申请到的内存大于 required 则 broker
               if (got >= required) {
                 break;
               }
             } else {
+              // 当前 MemoryConsumer 未释放出内存, 则移除
               cList.remove(cList.size() - 1);
               if (cList.isEmpty()) {
                 sortedConsumers.remove(currentEntry.getKey());
@@ -203,12 +215,15 @@ public class TaskMemoryManager {
       }
 
       // call spill() on itself
+      // 如果申请到的内存不够 required, 则会 spill 自己
       if (got < required) {
         try {
+          // spill 自己
           long released = consumer.spill(required - got, consumer);
           if (released > 0) {
             logger.debug("Task {} released {} from itself ({})", taskAttemptId,
               Utils.bytesToString(released), consumer);
+            //  再次去申请内存
             got += memoryManager.acquireExecutionMemory(required - got, taskAttemptId, mode);
           }
         } catch (ClosedByInterruptException e) {
@@ -223,7 +238,7 @@ public class TaskMemoryManager {
           // checkstyle.on: RegexpSinglelineJava
         }
       }
-
+      // 添加当前 MemoryConsumer 至 set
       consumers.add(consumer);
       logger.debug("Task {} acquired {} for {}", taskAttemptId, Utils.bytesToString(got), consumer);
       return got;

@@ -53,15 +53,17 @@ private[spark] abstract class MemoryManager(
   protected val onHeapExecutionMemoryPool = new ExecutionMemoryPool(this, MemoryMode.ON_HEAP)
   @GuardedBy("this")
   protected val offHeapExecutionMemoryPool = new ExecutionMemoryPool(this, MemoryMode.OFF_HEAP)
-
+  // 设置 onHeapStorageMemoryPool 大小为 onHeapStorageMemory
   onHeapStorageMemoryPool.incrementPoolSize(onHeapStorageMemory)
+  // 设置 onHeapExecutionMemoryPool 大小为 onHeapExecutionMemory
   onHeapExecutionMemoryPool.incrementPoolSize(onHeapExecutionMemory)
-
+  // spark.memory.offHeap.size 获取堆外内存大小
   protected[this] val maxOffHeapMemory = conf.get(MEMORY_OFFHEAP_SIZE)
   protected[this] val offHeapStorageMemory =
     (maxOffHeapMemory * conf.get(MEMORY_STORAGE_FRACTION)).toLong
-
+  // 设置堆外 offHeapExecutionMemoryPool 大小为 最大堆外内存 - 堆外 StorageMemory
   offHeapExecutionMemoryPool.incrementPoolSize(maxOffHeapMemory - offHeapStorageMemory)
+  // 设置堆外 storageMemoryPool 大小为 offHeapStorageMemory
   offHeapStorageMemoryPool.incrementPoolSize(offHeapStorageMemory)
 
   /**

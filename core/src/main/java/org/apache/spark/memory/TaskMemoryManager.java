@@ -300,7 +300,7 @@ public class TaskMemoryManager {
     if (size > MAXIMUM_PAGE_SIZE_BYTES) {
       throw new TooLargePageException(size);
     }
-
+    // 当前内存是否还足够申请 size 的大小的内存
     long acquired = acquireExecutionMemory(size, consumer);
     if (acquired <= 0) {
       return null;
@@ -308,29 +308,38 @@ public class TaskMemoryManager {
 
     final int pageNumber;
     synchronized (this) {
+      // 返回 allocatedPages 这个 bitset 中第一个设置为 false 的位的索引，这发生在指定的起始索引或之后的索引上
       pageNumber = allocatedPages.nextClearBit(0);
+      // 如果当前 pageNumber 大于 8192
       if (pageNumber >= PAGE_TABLE_SIZE) {
+        // 是否之前申请的内存
         releaseExecutionMemory(acquired, consumer);
         throw new IllegalStateException(
           "Have already allocated a maximum of " + PAGE_TABLE_SIZE + " pages");
       }
+      // 设置 pageNumber 至 bitset
       allocatedPages.set(pageNumber);
     }
     MemoryBlock page = null;
     try {
+      // 分配 MemoryBlock 也就是一个 page, 根据是使用的内存是堆外或堆内内存
       page = memoryManager.tungstenMemoryAllocator().allocate(acquired);
     } catch (OutOfMemoryError e) {
       logger.warn("Failed to allocate a page ({} bytes), try again.", acquired);
       // there is no enough memory actually, it means the actual free memory is smaller than
       // MemoryManager thought, we should keep the acquired memory.
       synchronized (this) {
+        // 统计申请但未使用的内存
         acquiredButNotUsed += acquired;
+        // 设置 bitset 中的 pageNumber 为 false
         allocatedPages.clear(pageNumber);
       }
       // this could trigger spilling to free some pages.
       return allocatePage(size, consumer);
     }
+    // 设置当前 page 的 pageNumber
     page.pageNumber = pageNumber;
+    // pageTable 数组, 保存 page
     pageTable[pageNumber] = page;
     if (logger.isTraceEnabled()) {
       logger.trace("Allocate page number {} ({} bytes)", pageNumber, acquired);

@@ -108,6 +108,7 @@ private[spark] class UnifiedMemoryManager(
      * When acquiring memory for a task, the execution pool may need to make multiple
      * attempts. Each attempt must be able to evict storage in case another task jumps in
      * and caches a large block between the attempts. This is called once per attempt.
+     * 当 execution pool 空间不足时，试图会向 storage pool 空间内存借用
      */
     def maybeGrowExecutionPool(extraMemoryNeeded: Long): Unit = {
       if (extraMemoryNeeded > 0) {
@@ -115,14 +116,18 @@ private[spark] class UnifiedMemoryManager(
         // storage. We can reclaim any free memory from the storage pool. If the storage pool
         // has grown to become larger than `storageRegionSize`, we can evict blocks and reclaim
         // the memory that storage has borrowed from execution.
+        // storagePool 的空闲内存与 storagePool.poolSize - storageRegionSize（在没有发生内存调整情况下为0） 的最大值
         val memoryReclaimableFromStorage = math.max(
           storagePool.memoryFree,
           storagePool.poolSize - storageRegionSize)
         if (memoryReclaimableFromStorage > 0) {
           // Only reclaim as much space as is necessary and available:
+          // 求出所需借用 storagePool 的大小与计算 storagepool 的空闲内存的最小值
           val spaceToReclaim = storagePool.freeSpaceToShrinkPool(
             math.min(extraMemoryNeeded, memoryReclaimableFromStorage))
+          // storagePool 减去 spaceToReclaim
           storagePool.decrementPoolSize(spaceToReclaim)
+          // executionPool 加上 spaceToReclaim
           executionPool.incrementPoolSize(spaceToReclaim)
         }
       }
@@ -141,10 +146,11 @@ private[spark] class UnifiedMemoryManager(
      * its fair share of execution memory, mistakenly thinking that other tasks can acquire
      * the portion of storage memory that cannot be evicted.
      */
+    // 用于计算 executionPollSize 的大小
     def computeMaxExecutionPoolSize(): Long = {
       maxMemory - math.min(storagePool.memoryUsed, storageRegionSize)
     }
-
+    // 向 executionPool 申请内存
     executionPool.acquireMemory(
       numBytes, taskAttemptId, maybeGrowExecutionPool, () => computeMaxExecutionPoolSize)
   }

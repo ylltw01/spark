@@ -312,7 +312,7 @@ public class TaskMemoryManager {
       pageNumber = allocatedPages.nextClearBit(0);
       // 如果当前 pageNumber 大于 8192
       if (pageNumber >= PAGE_TABLE_SIZE) {
-        // 是否之前申请的内存
+        // 释放之前申请的内存
         releaseExecutionMemory(acquired, consumer);
         throw new IllegalStateException(
           "Have already allocated a maximum of " + PAGE_TABLE_SIZE + " pages");

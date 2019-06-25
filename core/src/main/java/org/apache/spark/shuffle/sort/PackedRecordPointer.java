@@ -73,6 +73,7 @@ final class PackedRecordPointer {
    * @param recordPointer a record pointer encoded by TaskMemoryManager.
    * @param partitionId a shuffle partition id (maximum value of 2^24).
    * @return a packed pointer that can be decoded using the {@link PackedRecordPointer} class.
+   * [ 24 bit partitionId ] [ 13 bit pageNumber] [ 27 bit offset in page]
    */
   public static long packPointer(long recordPointer, int partitionId) {
     assert (partitionId <= MAXIMUM_PARTITION_ID);

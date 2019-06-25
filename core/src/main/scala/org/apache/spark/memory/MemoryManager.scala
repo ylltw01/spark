@@ -123,6 +123,7 @@ private[spark] abstract class MemoryManager(
 
   /**
    * Release numBytes of execution memory belonging to the given task.
+   * 释放指定 task 内存，指定大小的内存
    */
   private[memory]
   def releaseExecutionMemory(

@@ -52,106 +52,133 @@ private[kafka010] class KafkaSourceProvider extends DataSourceRegister
     with Logging {
   import KafkaSourceProvider._
 
+  // DataSourceRegister 的方法，的到 DataSource 名
   override def shortName(): String = "kafka"
 
   /**
    * Returns the name and schema of the source. In addition, it also verifies whether the options
    * are correct and sufficient to create the [[KafkaSource]] when the query is started.
+   *
+   * StreamSourceProvider 接口的方法，返回 DataSource 名和 schema 的映射信息
    */
   override def sourceSchema(
       sqlContext: SQLContext,
       schema: Option[StructType],
       providerName: String,
       parameters: Map[String, String]): (String, StructType) = {
+    // 流式相关参数校验
     validateStreamOptions(parameters)
     require(schema.isEmpty, "Kafka source has a fixed schema and cannot be set with a custom one")
     (shortName(), KafkaOffsetReader.kafkaSchema)
   }
 
+  // StreamSourceProvider 接口的方法， 返回该 DataSource 对应的实现对象，KafkaSource
   override def createSource(
       sqlContext: SQLContext,
       metadataPath: String,
       schema: Option[StructType],
       providerName: String,
       parameters: Map[String, String]): Source = {
+    // 流式相关参数校验
     validateStreamOptions(parameters)
     // Each running query should use its own group id. Otherwise, the query may be only assigned
     // partial data since Kafka will assign partitions to multiple consumers having the same group
     // id. Hence, we should generate a unique id for each query.
+    // 每次都会生成唯一的kafka consumer group id
     val uniqueGroupId = s"spark-kafka-source-${UUID.randomUUID}-${metadataPath.hashCode}"
-
+    // 参数名转小写
     val caseInsensitiveParams = parameters.map { case (k, v) => (k.toLowerCase(Locale.ROOT), v) }
+    // 提取 kafka 开头的变量
     val specifiedKafkaParams =
       parameters
         .keySet
         .filter(_.toLowerCase(Locale.ROOT).startsWith("kafka."))
         .map { k => k.drop(6).toString -> parameters(k) }
         .toMap
-
+    // 获取参数 startingoffsets 的值，LatestOffsetRangeLimit 或 EarliestOffsetRangeLimit
     val startingStreamOffsets = KafkaSourceProvider.getKafkaOffsetRangeLimit(caseInsensitiveParams,
       STARTING_OFFSETS_OPTION_KEY, LatestOffsetRangeLimit)
 
     val kafkaOffsetReader = new KafkaOffsetReader(
+      // 提取配置的参数中，配置的 topic 的值
       strategy(caseInsensitiveParams),
+      // 用户配置的 kafka 参数加上 6 个不能由用户配置的参数
       kafkaParamsForDriver(specifiedKafkaParams),
       parameters,
+      // driver 的 group id
       driverGroupIdPrefix = s"$uniqueGroupId-driver")
 
     new KafkaSource(
       sqlContext,
       kafkaOffsetReader,
+      // 用户配置的 kafka 参数加上 6 个不能由用户配置的参数
       kafkaParamsForExecutors(specifiedKafkaParams, uniqueGroupId),
       parameters,
+      // 应该是 checkpoint 存储的目录
       metadataPath,
+      // 消费的 offset 的策略
       startingStreamOffsets,
+      // failondataloss 参数的值，默认为 true
       failOnDataLoss(caseInsensitiveParams))
   }
 
   /**
    * Creates a [[org.apache.spark.sql.sources.v2.reader.streaming.MicroBatchReader]] to read batches
    * of Kafka data in a micro-batch streaming query.
+   * 接口 MicroBatchReadSupport 的方法，
    */
   override def createMicroBatchReader(
       schema: Optional[StructType],
       metadataPath: String,
       options: DataSourceOptions): KafkaMicroBatchReader = {
-
+    // 获取所有参数
     val parameters = options.asMap().asScala.toMap
+    // 校验
     validateStreamOptions(parameters)
     // Each running query should use its own group id. Otherwise, the query may be only assigned
     // partial data since Kafka will assign partitions to multiple consumers having the same group
     // id. Hence, we should generate a unique id for each query.
+    // 每次都会生成唯一的kafka consumer group id
     val uniqueGroupId = s"spark-kafka-source-${UUID.randomUUID}-${metadataPath.hashCode}"
-
+    // 参数名转小写
     val caseInsensitiveParams = parameters.map { case (k, v) => (k.toLowerCase(Locale.ROOT), v) }
+    // 提取 kafka 开头的变量
     val specifiedKafkaParams =
       parameters
         .keySet
         .filter(_.toLowerCase(Locale.ROOT).startsWith("kafka."))
         .map { k => k.drop(6).toString -> parameters(k) }
         .toMap
-
+    // 获取参数 startingoffsets 的值，LatestOffsetRangeLimit 或 EarliestOffsetRangeLimit
     val startingStreamOffsets = KafkaSourceProvider.getKafkaOffsetRangeLimit(caseInsensitiveParams,
       STARTING_OFFSETS_OPTION_KEY, LatestOffsetRangeLimit)
 
     val kafkaOffsetReader = new KafkaOffsetReader(
+      // 提取配置的参数中，配置的 topic 的值
       strategy(caseInsensitiveParams),
+      // 用户配置的 kafka 参数加上 6 个不能由用户配置的参数
       kafkaParamsForDriver(specifiedKafkaParams),
       parameters,
+      // driver 的 group id
       driverGroupIdPrefix = s"$uniqueGroupId-driver")
 
     new KafkaMicroBatchReader(
       kafkaOffsetReader,
+      // 用户配置的 kafka 参数加上 6 个不能由用户配置的参数
       kafkaParamsForExecutors(specifiedKafkaParams, uniqueGroupId),
       options,
+      // 应该是 checkpoint 存储的目录
       metadataPath,
+      // 消费的 offset 的策略
       startingStreamOffsets,
+      // failondataloss 参数的值，默认为 true
       failOnDataLoss(caseInsensitiveParams))
   }
 
   /**
    * Creates a [[ContinuousInputPartitionReader]] to read
    * Kafka data in a continuous streaming query.
+   * 接口 ContinuousReadSupport 的方法， 和 createMicroBatchReader 方法逻辑一致，只是返回值不一样
    */
   override def createContinuousReader(
       schema: Optional[StructType],
@@ -180,7 +207,7 @@ private[kafka010] class KafkaSourceProvider extends DataSourceRegister
       kafkaParamsForDriver(specifiedKafkaParams),
       parameters,
       driverGroupIdPrefix = s"$uniqueGroupId-driver")
-
+    // 返回值 KafkaContinuousReader
     new KafkaContinuousReader(
       kafkaOffsetReader,
       kafkaParamsForExecutors(specifiedKafkaParams, uniqueGroupId),
@@ -195,23 +222,28 @@ private[kafka010] class KafkaSourceProvider extends DataSourceRegister
    *
    * @note The parameters' keywords are case insensitive and this insensitivity is enforced
    *       by the Map that is passed to the function.
+   * 接口 RelationProvider 的方法，该方法限定 start 和 end offset，返回静态的 DataFrame
    */
   override def createRelation(
       sqlContext: SQLContext,
       parameters: Map[String, String]): BaseRelation = {
+    // Batch 参数校验
     validateBatchOptions(parameters)
+    // 参数转小写
     val caseInsensitiveParams = parameters.map { case (k, v) => (k.toLowerCase(Locale.ROOT), v) }
+    // 提取 kafka 相关参数
     val specifiedKafkaParams =
       parameters
         .keySet
         .filter(_.toLowerCase(Locale.ROOT).startsWith("kafka."))
         .map { k => k.drop(6).toString -> parameters(k) }
         .toMap
-
+    // 校验开始 offset 不为最大
     val startingRelationOffsets = KafkaSourceProvider.getKafkaOffsetRangeLimit(
       caseInsensitiveParams, STARTING_OFFSETS_OPTION_KEY, EarliestOffsetRangeLimit)
     assert(startingRelationOffsets != LatestOffsetRangeLimit)
 
+    // 校验结束 offset 不为最小
     val endingRelationOffsets = KafkaSourceProvider.getKafkaOffsetRangeLimit(caseInsensitiveParams,
       ENDING_OFFSETS_OPTION_KEY, LatestOffsetRangeLimit)
     assert(endingRelationOffsets != EarliestOffsetRangeLimit)
@@ -226,17 +258,21 @@ private[kafka010] class KafkaSourceProvider extends DataSourceRegister
       endingOffsets = endingRelationOffsets)
   }
 
+  // 接口 StreamSinkProvider 的方法
   override def createSink(
       sqlContext: SQLContext,
       parameters: Map[String, String],
       partitionColumns: Seq[String],
       outputMode: OutputMode): Sink = {
+    // 返回 sink 的 topic 名
     val defaultTopic = parameters.get(TOPIC_OPTION_KEY).map(_.trim)
+    // 返回 kafka 相关配置参数
     val specifiedKafkaParams = kafkaParamsForProducer(parameters)
     new KafkaSink(sqlContext,
       new ju.HashMap[String, Object](specifiedKafkaParams.asJava), defaultTopic)
   }
 
+  // 写至kafka
   override def createRelation(
       outerSQLContext: SQLContext,
       mode: SaveMode,
@@ -270,6 +306,7 @@ private[kafka010] class KafkaSourceProvider extends DataSourceRegister
     }
   }
 
+  // 接口 StreamWriteSupport 的方法
   override def createStreamWriter(
       queryId: String,
       schema: StructType,
@@ -284,10 +321,11 @@ private[kafka010] class KafkaSourceProvider extends DataSourceRegister
 
     KafkaWriter.validateQuery(
       schema.toAttributes, new java.util.HashMap[String, Object](producerParams.asJava), topic)
-
+    // 返回 KafkaStreamWriter
     new KafkaStreamWriter(topic, producerParams, schema)
   }
 
+  // 抽取配置的输入的 kafka topic
   private def strategy(caseInsensitiveParams: Map[String, String]) =
       caseInsensitiveParams.find(x => STRATEGY_OPTION_KEYS.contains(x._1)).get match {
     case ("assign", value) =>
@@ -486,6 +524,7 @@ private[kafka010] object KafkaSourceProvider extends Logging {
 
   private val deserClassName = classOf[ByteArrayDeserializer].getName
 
+  // 提取 offsetOptionKey 配置的值
   def getKafkaOffsetRangeLimit(
       params: Map[String, String],
       offsetOptionKey: String,
@@ -500,6 +539,7 @@ private[kafka010] object KafkaSourceProvider extends Logging {
     }
   }
 
+  // 让配置的 kafka 相关参数加上这 6 个不能配置的参数
   def kafkaParamsForDriver(specifiedKafkaParams: Map[String, String]): ju.Map[String, Object] =
     ConfigUpdater("source", specifiedKafkaParams)
       .set(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, deserClassName)
@@ -520,6 +560,7 @@ private[kafka010] object KafkaSourceProvider extends Logging {
       .setIfUnset(ConsumerConfig.RECEIVE_BUFFER_CONFIG, 65536: java.lang.Integer)
       .build()
 
+  // 让配置的 kafka 相关参数加上这 6 个不能配置的参数
   def kafkaParamsForExecutors(
       specifiedKafkaParams: Map[String, String],
       uniqueGroupId: String): ju.Map[String, Object] =
@@ -562,6 +603,7 @@ private[kafka010] object KafkaSourceProvider extends Logging {
     def build(): ju.Map[String, Object] = map
   }
 
+  // kafka producer 相关的配置参数
   private[kafka010] def kafkaParamsForProducer(
       parameters: Map[String, String]): Map[String, String] = {
     val caseInsensitiveParams = parameters.map { case (k, v) => (k.toLowerCase(Locale.ROOT), v) }

@@ -22,7 +22,7 @@ import java.{util => ju}
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.{DataFrame, SQLContext}
 import org.apache.spark.sql.execution.streaming.Sink
-
+// KafkaSink
 private[kafka010] class KafkaSink(
     sqlContext: SQLContext,
     executorKafkaParams: ju.Map[String, Object],
@@ -30,7 +30,7 @@ private[kafka010] class KafkaSink(
   @volatile private var latestBatchId = -1L
 
   override def toString(): String = "KafkaSink"
-
+  // 每个批次的数据 sink 至外部
   override def addBatch(batchId: Long, data: DataFrame): Unit = {
     if (batchId <= latestBatchId) {
       logInfo(s"Skipping already committed batch $batchId")

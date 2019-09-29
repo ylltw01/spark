@@ -141,9 +141,11 @@ private[kafka010] class KafkaSource(
 
   private var currentPartitionOffsets: Option[Map[TopicPartition, Long]] = None
 
+  // 返回 schema
   override def schema: StructType = KafkaOffsetReader.kafkaSchema
 
   /** Returns the maximum available offset for this source. */
+  // 获取 kafka 的最大可用 offset
   override def getOffset: Option[Offset] = {
     // Make sure initialPartitionOffsets is initialized
     initialPartitionOffsets

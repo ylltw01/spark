@@ -1277,7 +1277,7 @@ object functions {
   def spark_partition_id(): Column = withExpr { SparkPartitionID() }
 
   /**
-   * Computes the square root of the specified float value.
+   * Computes the square root of the specified float value.   计算平方根
    *
    * @group math_funcs
    * @since 1.3.0
@@ -1285,7 +1285,7 @@ object functions {
   def sqrt(e: Column): Column = withExpr { Sqrt(e.expr) }
 
   /**
-   * Computes the square root of the specified float value.
+   * Computes the square root of the specified float value.   计算平方根
    *
    * @group math_funcs
    * @since 1.5.0
@@ -1371,7 +1371,7 @@ object functions {
   //////////////////////////////////////////////////////////////////////////////////////////////
 
   /**
-   * Computes the absolute value of a numeric value.
+   * Computes the absolute value of a numeric value. 计算绝对值
    *
    * @group math_funcs
    * @since 1.3.0
@@ -1379,7 +1379,7 @@ object functions {
   def abs(e: Column): Column = withExpr { Abs(e.expr) }
 
   /**
-   * @return inverse cosine of `e` in radians, as if computed by `java.lang.Math.acos`
+   * @return inverse cosine of `e` in radians, as if computed by `java.lang.Math.acos` 计算反余弦值
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1387,7 +1387,7 @@ object functions {
   def acos(e: Column): Column = withExpr { Acos(e.expr) }
 
   /**
-   * @return inverse cosine of `columnName`, as if computed by `java.lang.Math.acos`
+   * @return inverse cosine of `columnName`, as if computed by `java.lang.Math.acos` 计算反余弦值
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1395,7 +1395,7 @@ object functions {
   def acos(columnName: String): Column = acos(Column(columnName))
 
   /**
-   * @return inverse sine of `e` in radians, as if computed by `java.lang.Math.asin`
+   * @return inverse sine of `e` in radians, as if computed by `java.lang.Math.asin`  计算反正弦值
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1403,7 +1403,7 @@ object functions {
   def asin(e: Column): Column = withExpr { Asin(e.expr) }
 
   /**
-   * @return inverse sine of `columnName`, as if computed by `java.lang.Math.asin`
+   * @return inverse sine of `columnName`, as if computed by `java.lang.Math.asin`  计算反正弦值
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1411,7 +1411,7 @@ object functions {
   def asin(columnName: String): Column = asin(Column(columnName))
 
   /**
-   * @return inverse tangent of `e`, as if computed by `java.lang.Math.atan`
+   * @return inverse tangent of `e`, as if computed by `java.lang.Math.atan` 计算反正切值
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1419,7 +1419,7 @@ object functions {
   def atan(e: Column): Column = withExpr { Atan(e.expr) }
 
   /**
-   * @return inverse tangent of `columnName`, as if computed by `java.lang.Math.atan`
+   * @return inverse tangent of `columnName`, as if computed by `java.lang.Math.atan` 计算反正切值
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1433,7 +1433,7 @@ object functions {
    *         (<i>r</i>, <i>theta</i>)
    *         in polar coordinates that corresponds to the point
    *         (<i>x</i>, <i>y</i>) in Cartesian coordinates,
-   *         as if computed by `java.lang.Math.atan2`
+   *         as if computed by `java.lang.Math.atan2` 计算反正切值
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1447,7 +1447,7 @@ object functions {
    *         (<i>r</i>, <i>theta</i>)
    *         in polar coordinates that corresponds to the point
    *         (<i>x</i>, <i>y</i>) in Cartesian coordinates,
-   *         as if computed by `java.lang.Math.atan2`
+   *         as if computed by `java.lang.Math.atan2` 计算反正切值
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1461,7 +1461,7 @@ object functions {
    *         (<i>r</i>, <i>theta</i>)
    *         in polar coordinates that corresponds to the point
    *         (<i>x</i>, <i>y</i>) in Cartesian coordinates,
-   *         as if computed by `java.lang.Math.atan2`
+   *         as if computed by `java.lang.Math.atan2` 计算反正切值
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1475,7 +1475,7 @@ object functions {
    *         (<i>r</i>, <i>theta</i>)
    *         in polar coordinates that corresponds to the point
    *         (<i>x</i>, <i>y</i>) in Cartesian coordinates,
-   *         as if computed by `java.lang.Math.atan2`
+   *         as if computed by `java.lang.Math.atan2` 计算反正切值
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1490,7 +1490,7 @@ object functions {
    *         (<i>r</i>, <i>theta</i>)
    *         in polar coordinates that corresponds to the point
    *         (<i>x</i>, <i>y</i>) in Cartesian coordinates,
-   *         as if computed by `java.lang.Math.atan2`
+   *         as if computed by `java.lang.Math.atan2` 计算反正切值
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1504,7 +1504,7 @@ object functions {
    *         (<i>r</i>, <i>theta</i>)
    *         in polar coordinates that corresponds to the point
    *         (<i>x</i>, <i>y</i>) in Cartesian coordinates,
-   *         as if computed by `java.lang.Math.atan2`
+   *         as if computed by `java.lang.Math.atan2` 计算反正切值
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1518,7 +1518,7 @@ object functions {
    *         (<i>r</i>, <i>theta</i>)
    *         in polar coordinates that corresponds to the point
    *         (<i>x</i>, <i>y</i>) in Cartesian coordinates,
-   *         as if computed by `java.lang.Math.atan2`
+   *         as if computed by `java.lang.Math.atan2` 计算反正切值
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1532,7 +1532,7 @@ object functions {
    *         (<i>r</i>, <i>theta</i>)
    *         in polar coordinates that corresponds to the point
    *         (<i>x</i>, <i>y</i>) in Cartesian coordinates,
-   *         as if computed by `java.lang.Math.atan2`
+   *         as if computed by `java.lang.Math.atan2` 计算反正切值
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1541,7 +1541,7 @@ object functions {
 
   /**
    * An expression that returns the string representation of the binary value of the given long
-   * column. For example, bin("12") returns "1100".
+   * column. For example, bin("12") returns "1100". 计算二进制
    *
    * @group math_funcs
    * @since 1.5.0
@@ -1550,7 +1550,7 @@ object functions {
 
   /**
    * An expression that returns the string representation of the binary value of the given long
-   * column. For example, bin("12") returns "1100".
+   * column. For example, bin("12") returns "1100". 计算二进制
    *
    * @group math_funcs
    * @since 1.5.0
@@ -1558,7 +1558,7 @@ object functions {
   def bin(columnName: String): Column = bin(Column(columnName))
 
   /**
-   * Computes the cube-root of the given value.
+   * Computes the cube-root of the given value. 计算立方根
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1566,7 +1566,7 @@ object functions {
   def cbrt(e: Column): Column = withExpr { Cbrt(e.expr) }
 
   /**
-   * Computes the cube-root of the given column.
+   * Computes the cube-root of the given column.  计算立方根
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1574,7 +1574,7 @@ object functions {
   def cbrt(columnName: String): Column = cbrt(Column(columnName))
 
   /**
-   * Computes the ceiling of the given value.
+   * Computes the ceiling of the given value.  向上取整
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1582,7 +1582,7 @@ object functions {
   def ceil(e: Column): Column = withExpr { Ceil(e.expr) }
 
   /**
-   * Computes the ceiling of the given column.
+   * Computes the ceiling of the given column. 向上取整
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1590,7 +1590,7 @@ object functions {
   def ceil(columnName: String): Column = ceil(Column(columnName))
 
   /**
-   * Convert a number in a string column from one base to another.
+   * Convert a number in a string column from one base to another. 从 fromBase 进制转换为 toBase 进制，如：conv(df("ID"), 10, 2)
    *
    * @group math_funcs
    * @since 1.5.0
@@ -1601,7 +1601,7 @@ object functions {
 
   /**
    * @param e angle in radians
-   * @return cosine of the angle, as if computed by `java.lang.Math.cos`
+   * @return cosine of the angle, as if computed by `java.lang.Math.cos` 计算余弦值
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1610,7 +1610,7 @@ object functions {
 
   /**
    * @param columnName angle in radians
-   * @return cosine of the angle, as if computed by `java.lang.Math.cos`
+   * @return cosine of the angle, as if computed by `java.lang.Math.cos` 计算余弦值
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1619,7 +1619,7 @@ object functions {
 
   /**
    * @param e hyperbolic angle
-   * @return hyperbolic cosine of the angle, as if computed by `java.lang.Math.cosh`
+   * @return hyperbolic cosine of the angle, as if computed by `java.lang.Math.cosh` 计算双曲余弦函数
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1628,7 +1628,7 @@ object functions {
 
   /**
    * @param columnName hyperbolic angle
-   * @return hyperbolic cosine of the angle, as if computed by `java.lang.Math.cosh`
+   * @return hyperbolic cosine of the angle, as if computed by `java.lang.Math.cosh` 计算双曲余弦函数
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1668,7 +1668,7 @@ object functions {
   def expm1(columnName: String): Column = expm1(Column(columnName))
 
   /**
-   * Computes the factorial of the given value.
+   * Computes the factorial of the given value. 计算阶乘
    *
    * @group math_funcs
    * @since 1.5.0
@@ -1676,7 +1676,7 @@ object functions {
   def factorial(e: Column): Column = withExpr { Factorial(e.expr) }
 
   /**
-   * Computes the floor of the given value.
+   * Computes the floor of the given value. 向下取整
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1684,7 +1684,7 @@ object functions {
   def floor(e: Column): Column = withExpr { Floor(e.expr) }
 
   /**
-   * Computes the floor of the given column.
+   * Computes the floor of the given column. 向下取整
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1714,7 +1714,7 @@ object functions {
   }
 
   /**
-   * Computes hex value of the given column.
+   * Computes hex value of the given column.  计算十六进制的值
    *
    * @group math_funcs
    * @since 1.5.0
@@ -1723,7 +1723,7 @@ object functions {
 
   /**
    * Inverse of hex. Interprets each pair of characters as a hexadecimal number
-   * and converts to the byte representation of number.
+   * and converts to the byte representation of number. 每对字符解释为十六进制数字，并将其转换为数字的字节表示形式。
    *
    * @group math_funcs
    * @since 1.5.0
@@ -1731,7 +1731,7 @@ object functions {
   def unhex(column: Column): Column = withExpr { Unhex(column.expr) }
 
   /**
-   * Computes `sqrt(a^2^ + b^2^)` without intermediate overflow or underflow.
+   * Computes `sqrt(a^2^ + b^2^)` without intermediate overflow or underflow. 计算平方根
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1739,7 +1739,7 @@ object functions {
   def hypot(l: Column, r: Column): Column = withExpr { Hypot(l.expr, r.expr) }
 
   /**
-   * Computes `sqrt(a^2^ + b^2^)` without intermediate overflow or underflow.
+   * Computes `sqrt(a^2^ + b^2^)` without intermediate overflow or underflow. 计算平方根
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1747,7 +1747,7 @@ object functions {
   def hypot(l: Column, rightName: String): Column = hypot(l, Column(rightName))
 
   /**
-   * Computes `sqrt(a^2^ + b^2^)` without intermediate overflow or underflow.
+   * Computes `sqrt(a^2^ + b^2^)` without intermediate overflow or underflow. 计算平方根
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1755,7 +1755,7 @@ object functions {
   def hypot(leftName: String, r: Column): Column = hypot(Column(leftName), r)
 
   /**
-   * Computes `sqrt(a^2^ + b^2^)` without intermediate overflow or underflow.
+   * Computes `sqrt(a^2^ + b^2^)` without intermediate overflow or underflow. 计算平方根
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1764,7 +1764,7 @@ object functions {
     hypot(Column(leftName), Column(rightName))
 
   /**
-   * Computes `sqrt(a^2^ + b^2^)` without intermediate overflow or underflow.
+   * Computes `sqrt(a^2^ + b^2^)` without intermediate overflow or underflow. 计算平方根
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1772,7 +1772,7 @@ object functions {
   def hypot(l: Column, r: Double): Column = hypot(l, lit(r))
 
   /**
-   * Computes `sqrt(a^2^ + b^2^)` without intermediate overflow or underflow.
+   * Computes `sqrt(a^2^ + b^2^)` without intermediate overflow or underflow. 计算平方根
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1780,7 +1780,7 @@ object functions {
   def hypot(leftName: String, r: Double): Column = hypot(Column(leftName), r)
 
   /**
-   * Computes `sqrt(a^2^ + b^2^)` without intermediate overflow or underflow.
+   * Computes `sqrt(a^2^ + b^2^)` without intermediate overflow or underflow. 计算平方根
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1788,7 +1788,7 @@ object functions {
   def hypot(l: Double, r: Column): Column = hypot(lit(l), r)
 
   /**
-   * Computes `sqrt(a^2^ + b^2^)` without intermediate overflow or underflow.
+   * Computes `sqrt(a^2^ + b^2^)` without intermediate overflow or underflow. 计算平方根
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1818,7 +1818,7 @@ object functions {
   }
 
   /**
-   * Computes the natural logarithm of the given value.
+   * Computes the natural logarithm of the given value. 计算自然对数
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1826,7 +1826,7 @@ object functions {
   def log(e: Column): Column = withExpr { Log(e.expr) }
 
   /**
-   * Computes the natural logarithm of the given column.
+   * Computes the natural logarithm of the given column. 计算自然对数
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1834,7 +1834,7 @@ object functions {
   def log(columnName: String): Column = log(Column(columnName))
 
   /**
-   * Returns the first argument-base logarithm of the second argument.
+   * Returns the first argument-base logarithm of the second argument. 返回第二个参数的第一个以参数为底的对数。
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1842,7 +1842,7 @@ object functions {
   def log(base: Double, a: Column): Column = withExpr { Logarithm(lit(base).expr, a.expr) }
 
   /**
-   * Returns the first argument-base logarithm of the second argument.
+   * Returns the first argument-base logarithm of the second argument. 返回第二个参数的第一个以参数为底的对数。
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1850,7 +1850,7 @@ object functions {
   def log(base: Double, columnName: String): Column = log(base, Column(columnName))
 
   /**
-   * Computes the logarithm of the given value in base 10.
+   * Computes the logarithm of the given value in base 10. 返回以10底的参数的对数。
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1858,7 +1858,7 @@ object functions {
   def log10(e: Column): Column = withExpr { Log10(e.expr) }
 
   /**
-   * Computes the logarithm of the given value in base 10.
+   * Computes the logarithm of the given value in base 10.  返回以10底的参数的对数。
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1866,7 +1866,7 @@ object functions {
   def log10(columnName: String): Column = log10(Column(columnName))
 
   /**
-   * Computes the natural logarithm of the given value plus one.
+   * Computes the natural logarithm of the given value plus one. 计算给定值加1的自然对数
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1874,7 +1874,7 @@ object functions {
   def log1p(e: Column): Column = withExpr { Log1p(e.expr) }
 
   /**
-   * Computes the natural logarithm of the given column plus one.
+   * Computes the natural logarithm of the given column plus one. 计算给定值加1的自然对数
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1882,7 +1882,7 @@ object functions {
   def log1p(columnName: String): Column = log1p(Column(columnName))
 
   /**
-   * Computes the logarithm of the given column in base 2.
+   * Computes the logarithm of the given column in base 2. 返回以2底的参数的对数。
    *
    * @group math_funcs
    * @since 1.5.0
@@ -1890,7 +1890,7 @@ object functions {
   def log2(expr: Column): Column = withExpr { Log2(expr.expr) }
 
   /**
-   * Computes the logarithm of the given value in base 2.
+   * Computes the logarithm of the given value in base 2. 返回以2底的参数的对数。
    *
    * @group math_funcs
    * @since 1.5.0
@@ -1898,7 +1898,7 @@ object functions {
   def log2(columnName: String): Column = log2(Column(columnName))
 
   /**
-   * Returns the value of the first argument raised to the power of the second argument.
+   * Returns the value of the first argument raised to the power of the second argument.  返回第一个参数的第二个参数值的次幂。
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1906,7 +1906,7 @@ object functions {
   def pow(l: Column, r: Column): Column = withExpr { Pow(l.expr, r.expr) }
 
   /**
-   * Returns the value of the first argument raised to the power of the second argument.
+   * Returns the value of the first argument raised to the power of the second argument.  返回第一个参数的第二个参数值的次幂
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1914,7 +1914,7 @@ object functions {
   def pow(l: Column, rightName: String): Column = pow(l, Column(rightName))
 
   /**
-   * Returns the value of the first argument raised to the power of the second argument.
+   * Returns the value of the first argument raised to the power of the second argument.  返回第一个参数的第二个参数值的次幂
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1922,7 +1922,7 @@ object functions {
   def pow(leftName: String, r: Column): Column = pow(Column(leftName), r)
 
   /**
-   * Returns the value of the first argument raised to the power of the second argument.
+   * Returns the value of the first argument raised to the power of the second argument.  返回第一个参数的第二个参数值的次幂
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1930,7 +1930,7 @@ object functions {
   def pow(leftName: String, rightName: String): Column = pow(Column(leftName), Column(rightName))
 
   /**
-   * Returns the value of the first argument raised to the power of the second argument.
+   * Returns the value of the first argument raised to the power of the second argument.  返回第一个参数的第二个参数值的次幂
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1938,7 +1938,7 @@ object functions {
   def pow(l: Column, r: Double): Column = pow(l, lit(r))
 
   /**
-   * Returns the value of the first argument raised to the power of the second argument.
+   * Returns the value of the first argument raised to the power of the second argument.  返回第一个参数的第二个参数值的次幂
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1946,7 +1946,7 @@ object functions {
   def pow(leftName: String, r: Double): Column = pow(Column(leftName), r)
 
   /**
-   * Returns the value of the first argument raised to the power of the second argument.
+   * Returns the value of the first argument raised to the power of the second argument.   返回第一个参数的第二个参数值的次幂
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1954,7 +1954,7 @@ object functions {
   def pow(l: Double, r: Column): Column = pow(lit(l), r)
 
   /**
-   * Returns the value of the first argument raised to the power of the second argument.
+   * Returns the value of the first argument raised to the power of the second argument.   返回第一个参数的第二个参数值的次幂
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1962,7 +1962,7 @@ object functions {
   def pow(l: Double, rightName: String): Column = pow(l, Column(rightName))
 
   /**
-   * Returns the positive value of dividend mod divisor.
+   * Returns the positive value of dividend mod divisor. 求模，取余
    *
    * @group math_funcs
    * @since 1.5.0
@@ -1973,7 +1973,7 @@ object functions {
 
   /**
    * Returns the double value that is closest in value to the argument and
-   * is equal to a mathematical integer.
+   * is equal to a mathematical integer.   返回最接近的整数值
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1982,7 +1982,7 @@ object functions {
 
   /**
    * Returns the double value that is closest in value to the argument and
-   * is equal to a mathematical integer.
+   * is equal to a mathematical integer.   返回最接近的整数值
    *
    * @group math_funcs
    * @since 1.4.0
@@ -1990,7 +1990,7 @@ object functions {
   def rint(columnName: String): Column = rint(Column(columnName))
 
   /**
-   * Returns the value of the column `e` rounded to 0 decimal places with HALF_UP round mode.
+   * Returns the value of the column `e` rounded to 0 decimal places with HALF_UP round mode. 四舍五入向上取
    *
    * @group math_funcs
    * @since 1.5.0
@@ -1999,7 +1999,7 @@ object functions {
 
   /**
    * Round the value of `e` to `scale` decimal places with HALF_UP round mode
-   * if `scale` is greater than or equal to 0 or at integral part when `scale` is less than 0.
+   * if `scale` is greater than or equal to 0 or at integral part when `scale` is less than 0. 四舍五入向上取
    *
    * @group math_funcs
    * @since 1.5.0
@@ -2007,7 +2007,7 @@ object functions {
   def round(e: Column, scale: Int): Column = withExpr { Round(e.expr, Literal(scale)) }
 
   /**
-   * Returns the value of the column `e` rounded to 0 decimal places with HALF_EVEN round mode.
+   * Returns the value of the column `e` rounded to 0 decimal places with HALF_EVEN round mode. 四舍五入向下取
    *
    * @group math_funcs
    * @since 2.0.0
@@ -2016,7 +2016,7 @@ object functions {
 
   /**
    * Round the value of `e` to `scale` decimal places with HALF_EVEN round mode
-   * if `scale` is greater than or equal to 0 or at integral part when `scale` is less than 0.
+   * if `scale` is greater than or equal to 0 or at integral part when `scale` is less than 0.  四舍五入向下取
    *
    * @group math_funcs
    * @since 2.0.0
@@ -2025,7 +2025,7 @@ object functions {
 
   /**
    * Shift the given value numBits left. If the given value is a long value, this function
-   * will return a long value else it will return an integer value.
+   * will return a long value else it will return an integer value.  将给定的值数字左移。如果给定的值是一个long，这个函数将返回一个long，否则将返回一个整数值。
    *
    * @group math_funcs
    * @since 1.5.0
@@ -2034,7 +2034,7 @@ object functions {
 
   /**
    * (Signed) shift the given value numBits right. If the given value is a long value, it will
-   * return a long value else it will return an integer value.
+   * return a long value else it will return an integer value.  将给定的值数字右移。如果给定的值是一个long，这个函数将返回一个long，否则将返回一个整数值
    *
    * @group math_funcs
    * @since 1.5.0
@@ -2045,7 +2045,7 @@ object functions {
 
   /**
    * Unsigned shift the given value numBits right. If the given value is a long value,
-   * it will return a long value else it will return an integer value.
+   * it will return a long value else it will return an integer value. 无符号右移
    *
    * @group math_funcs
    * @since 1.5.0
@@ -2072,7 +2072,7 @@ object functions {
 
   /**
    * @param e angle in radians
-   * @return sine of the angle, as if computed by `java.lang.Math.sin`
+   * @return sine of the angle, as if computed by `java.lang.Math.sin` 计算正弦值
    *
    * @group math_funcs
    * @since 1.4.0
@@ -2081,7 +2081,7 @@ object functions {
 
   /**
    * @param columnName angle in radians
-   * @return sine of the angle, as if computed by `java.lang.Math.sin`
+   * @return sine of the angle, as if computed by `java.lang.Math.sin`  计算正弦值
    *
    * @group math_funcs
    * @since 1.4.0
@@ -2090,7 +2090,7 @@ object functions {
 
   /**
    * @param e hyperbolic angle
-   * @return hyperbolic sine of the given value, as if computed by `java.lang.Math.sinh`
+   * @return hyperbolic sine of the given value, as if computed by `java.lang.Math.sinh`  计算双曲正弦
    *
    * @group math_funcs
    * @since 1.4.0
@@ -2099,7 +2099,7 @@ object functions {
 
   /**
    * @param columnName hyperbolic angle
-   * @return hyperbolic sine of the given value, as if computed by `java.lang.Math.sinh`
+   * @return hyperbolic sine of the given value, as if computed by `java.lang.Math.sinh`   计算双曲正弦
    *
    * @group math_funcs
    * @since 1.4.0
@@ -2108,7 +2108,7 @@ object functions {
 
   /**
    * @param e angle in radians
-   * @return tangent of the given value, as if computed by `java.lang.Math.tan`
+   * @return tangent of the given value, as if computed by `java.lang.Math.tan`   计算正切值
    *
    * @group math_funcs
    * @since 1.4.0
@@ -2117,7 +2117,7 @@ object functions {
 
   /**
    * @param columnName angle in radians
-   * @return tangent of the given value, as if computed by `java.lang.Math.tan`
+   * @return tangent of the given value, as if computed by `java.lang.Math.tan`   计算正切值
    *
    * @group math_funcs
    * @since 1.4.0
@@ -2126,7 +2126,7 @@ object functions {
 
   /**
    * @param e hyperbolic angle
-   * @return hyperbolic tangent of the given value, as if computed by `java.lang.Math.tanh`
+   * @return hyperbolic tangent of the given value, as if computed by `java.lang.Math.tanh` 计算双曲正切值
    *
    * @group math_funcs
    * @since 1.4.0
@@ -2135,7 +2135,7 @@ object functions {
 
   /**
    * @param columnName hyperbolic angle
-   * @return hyperbolic tangent of the given value, as if computed by `java.lang.Math.tanh`
+   * @return hyperbolic tangent of the given value, as if computed by `java.lang.Math.tanh` 计算双曲正切值
    *
    * @group math_funcs
    * @since 1.4.0
@@ -2157,7 +2157,7 @@ object functions {
   def toDegrees(columnName: String): Column = degrees(Column(columnName))
 
   /**
-   * Converts an angle measured in radians to an approximately equivalent angle measured in degrees.
+   * Converts an angle measured in radians to an approximately equivalent angle measured in degrees.  将以弧度度量的角度转换为以度度量的近似等效角度。
    *
    * @param e angle in radians
    * @return angle in degrees, as if computed by `java.lang.Math.toDegrees`
@@ -2168,7 +2168,7 @@ object functions {
   def degrees(e: Column): Column = withExpr { ToDegrees(e.expr) }
 
   /**
-   * Converts an angle measured in radians to an approximately equivalent angle measured in degrees.
+   * Converts an angle measured in radians to an approximately equivalent angle measured in degrees.  将以弧度度量的角度转换为以度度量的近似等效角度。
    *
    * @param columnName angle in radians
    * @return angle in degrees, as if computed by `java.lang.Math.toDegrees`
@@ -2193,7 +2193,7 @@ object functions {
   def toRadians(columnName: String): Column = radians(Column(columnName))
 
   /**
-   * Converts an angle measured in degrees to an approximately equivalent angle measured in radians.
+   * Converts an angle measured in degrees to an approximately equivalent angle measured in radians.  将以度为度量单位的角度转换为以弧度为度量单位的近似等效角度
    *
    * @param e angle in degrees
    * @return angle in radians, as if computed by `java.lang.Math.toRadians`
@@ -2204,7 +2204,7 @@ object functions {
   def radians(e: Column): Column = withExpr { ToRadians(e.expr) }
 
   /**
-   * Converts an angle measured in degrees to an approximately equivalent angle measured in radians.
+   * Converts an angle measured in degrees to an approximately equivalent angle measured in radians.  将以度为度量单位的角度转换为以弧度为度量单位的近似等效角度
    *
    * @param columnName angle in degrees
    * @return angle in radians, as if computed by `java.lang.Math.toRadians`
@@ -2220,7 +2220,7 @@ object functions {
 
   /**
    * Calculates the MD5 digest of a binary column and returns the value
-   * as a 32 character hex string.
+   * as a 32 character hex string.         md5 计算
    *
    * @group misc_funcs
    * @since 1.5.0
@@ -2229,7 +2229,7 @@ object functions {
 
   /**
    * Calculates the SHA-1 digest of a binary column and returns the value
-   * as a 40 character hex string.
+   * as a 40 character hex string.   sha1
    *
    * @group misc_funcs
    * @since 1.5.0
@@ -2238,7 +2238,7 @@ object functions {
 
   /**
    * Calculates the SHA-2 family of hash functions of a binary column and
-   * returns the value as a hex string.
+   * returns the value as a hex string.   sha2
    *
    * @param e column to compute SHA-2 on.
    * @param numBits one of 224, 256, 384, or 512.
@@ -2254,7 +2254,7 @@ object functions {
 
   /**
    * Calculates the cyclic redundancy check value  (CRC32) of a binary column and
-   * returns the value as a bigint.
+   * returns the value as a bigint.  crc32
    *
    * @group misc_funcs
    * @since 1.5.0
@@ -2262,7 +2262,7 @@ object functions {
   def crc32(e: Column): Column = withExpr { Crc32(e.expr) }
 
   /**
-   * Calculates the hash code of given columns, and returns the result as an int column.
+   * Calculates the hash code of given columns, and returns the result as an int column.  hash
    *
    * @group misc_funcs
    * @since 2.0.0
@@ -2278,7 +2278,7 @@ object functions {
 
   /**
    * Computes the numeric value of the first character of the string column, and returns the
-   * result as an int column.
+   * result as an int column.        ascii 码
    *
    * @group string_funcs
    * @since 1.5.0
@@ -2287,7 +2287,7 @@ object functions {
 
   /**
    * Computes the BASE64 encoding of a binary column and returns it as a string column.
-   * This is the reverse of unbase64.
+   * This is the reverse of unbase64.    base64
    *
    * @group string_funcs
    * @since 1.5.0
@@ -2296,7 +2296,7 @@ object functions {
 
   /**
    * Concatenates multiple input string columns together into a single string column,
-   * using the given separator.
+   * using the given separator.          指定的分隔符连接字符串
    *
    * @group string_funcs
    * @since 1.5.0
@@ -2309,7 +2309,7 @@ object functions {
   /**
    * Computes the first argument into a string from a binary using the provided character set
    * (one of 'US-ASCII', 'ISO-8859-1', 'UTF-8', 'UTF-16BE', 'UTF-16LE', 'UTF-16').
-   * If either argument is null, the result will also be null.
+   * If either argument is null, the result will also be null.        decode 字符
    *
    * @group string_funcs
    * @since 1.5.0
@@ -2321,7 +2321,7 @@ object functions {
   /**
    * Computes the first argument into a binary from a string using the provided character set
    * (one of 'US-ASCII', 'ISO-8859-1', 'UTF-8', 'UTF-16BE', 'UTF-16LE', 'UTF-16').
-   * If either argument is null, the result will also be null.
+   * If either argument is null, the result will also be null.       encode 字符
    *
    * @group string_funcs
    * @since 1.5.0
@@ -2335,7 +2335,7 @@ object functions {
    * with HALF_EVEN round mode, and returns the result as a string column.
    *
    * If d is 0, the result has no decimal point or fractional part.
-   * If d is less than 0, the result will be null.
+   * If d is less than 0, the result will be null.      格式化数值
    *
    * @group string_funcs
    * @since 1.5.0
@@ -2345,7 +2345,7 @@ object functions {
   }
 
   /**
-   * Formats the arguments in printf-style and returns the result as a string column.
+   * Formats the arguments in printf-style and returns the result as a string column. 以printf 方式格式化字符串
    *
    * @group string_funcs
    * @since 1.5.0
@@ -2359,7 +2359,7 @@ object functions {
    * Returns a new string column by converting the first letter of each word to uppercase.
    * Words are delimited by whitespace.
    *
-   * For example, "hello world" will become "Hello World".
+   * For example, "hello world" will become "Hello World".   将以空格分割的单词的首字母转大写
    *
    * @group string_funcs
    * @since 1.5.0
@@ -2368,7 +2368,7 @@ object functions {
 
   /**
    * Locate the position of the first occurrence of substr column in the given string.
-   * Returns null if either of the arguments are null.
+   * Returns null if either of the arguments are null.      返回子串在列中第一次出现的位置，从1开始，不是从0开始
    *
    * @note The position is not zero based, but 1 based index. Returns 0 if substr
    * could not be found in str.
@@ -2383,7 +2383,7 @@ object functions {
   /**
    * Computes the character length of a given string or number of bytes of a binary string.
    * The length of character strings include the trailing spaces. The length of binary strings
-   * includes binary zeros.
+   * includes binary zeros.           返回长度
    *
    * @group string_funcs
    * @since 1.5.0
@@ -2391,7 +2391,7 @@ object functions {
   def length(e: Column): Column = withExpr { Length(e.expr) }
 
   /**
-   * Converts a string column to lower case.
+   * Converts a string column to lower case.   转换为小写
    *
    * @group string_funcs
    * @since 1.3.0
@@ -2399,14 +2399,14 @@ object functions {
   def lower(e: Column): Column = withExpr { Lower(e.expr) }
 
   /**
-   * Computes the Levenshtein distance of the two given string columns.
+   * Computes the Levenshtein distance of the two given string columns.  返回两个字符串的编辑距离
    * @group string_funcs
    * @since 1.5.0
    */
   def levenshtein(l: Column, r: Column): Column = withExpr { Levenshtein(l.expr, r.expr) }
 
   /**
-   * Locate the position of the first occurrence of substr.
+   * Locate the position of the first occurrence of substr.    查找第一次出现 substr 的位置
    *
    * @note The position is not zero based, but 1 based index. Returns 0 if substr
    * could not be found in str.
@@ -2419,7 +2419,7 @@ object functions {
   }
 
   /**
-   * Locate the position of the first occurrence of substr in a string column, after position pos.
+   * Locate the position of the first occurrence of substr in a string column, after position pos.  查找从指定 pos 后的，第一次出现 substr的位置
    *
    * @note The position is not zero based, but 1 based index. returns 0 if substr
    * could not be found in str.
@@ -2433,7 +2433,7 @@ object functions {
 
   /**
    * Left-pad the string column with pad to a length of len. If the string column is longer
-   * than len, the return value is shortened to len characters.
+   * than len, the return value is shortened to len characters.    返回固定长度的字符串，如果长度不够，在左边用某种字符补全
    *
    * @group string_funcs
    * @since 1.5.0
@@ -2443,7 +2443,7 @@ object functions {
   }
 
   /**
-   * Trim the spaces from left end for the specified string value.
+   * Trim the spaces from left end for the specified string value.   去除左空格
    *
    * @group string_funcs
    * @since 1.5.0
@@ -2451,7 +2451,7 @@ object functions {
   def ltrim(e: Column): Column = withExpr {StringTrimLeft(e.expr) }
 
   /**
-   * Trim the specified character string from left end for the specified string column.
+   * Trim the specified character string from left end for the specified string column.   去除左开头的某些字符
    * @group string_funcs
    * @since 2.3.0
    */
@@ -2461,7 +2461,7 @@ object functions {
 
   /**
    * Extract a specific group matched by a Java regex, from the specified string column.
-   * If the regex did not match, or the specified group did not match, an empty string is returned.
+   * If the regex did not match, or the specified group did not match, an empty string is returned.   正则提取某些字符串
    *
    * @group string_funcs
    * @since 1.5.0
@@ -2471,7 +2471,7 @@ object functions {
   }
 
   /**
-   * Replace all substrings of the specified string value that match regexp with rep.
+   * Replace all substrings of the specified string value that match regexp with rep.     正则替换某些字符串
    *
    * @group string_funcs
    * @since 1.5.0
@@ -2481,7 +2481,7 @@ object functions {
   }
 
   /**
-   * Replace all substrings of the specified string value that match regexp with rep.
+   * Replace all substrings of the specified string value that match regexp with rep.      正则替换某些字符串
    *
    * @group string_funcs
    * @since 2.1.0
@@ -2491,7 +2491,7 @@ object functions {
   }
 
   /**
-   * Decodes a BASE64 encoded string column and returns it as a binary column.
+   * Decodes a BASE64 encoded string column and returns it as a binary column.      Decodes a BASE64
    * This is the reverse of base64.
    *
    * @group string_funcs
@@ -2501,7 +2501,7 @@ object functions {
 
   /**
    * Right-pad the string column with pad to a length of len. If the string column is longer
-   * than len, the return value is shortened to len characters.
+   * than len, the return value is shortened to len characters.         返回固定长度的字符串，如果长度不够，在左边用某种字符补全
    *
    * @group string_funcs
    * @since 1.5.0
@@ -2511,7 +2511,7 @@ object functions {
   }
 
   /**
-   * Repeats a string column n times, and returns it as a new string column.
+   * Repeats a string column n times, and returns it as a new string column.   重复 str n 次
    *
    * @group string_funcs
    * @since 1.5.0
@@ -2521,7 +2521,7 @@ object functions {
   }
 
   /**
-   * Trim the spaces from right end for the specified string value.
+   * Trim the spaces from right end for the specified string value.           去除右空格
    *
    * @group string_funcs
    * @since 1.5.0
@@ -2529,7 +2529,7 @@ object functions {
   def rtrim(e: Column): Column = withExpr { StringTrimRight(e.expr) }
 
   /**
-   * Trim the specified character string from right end for the specified string column.
+   * Trim the specified character string from right end for the specified string column.   去除右开头的某些字符
    * @group string_funcs
    * @since 2.3.0
    */
@@ -2546,7 +2546,7 @@ object functions {
   def soundex(e: Column): Column = withExpr { SoundEx(e.expr) }
 
   /**
-   * Splits str around pattern (pattern is a regular expression).
+   * Splits str around pattern (pattern is a regular expression).   字符串分割
    *
    * @note Pattern is a string representation of the regular expression.
    *
@@ -2558,7 +2558,7 @@ object functions {
   }
 
   /**
-   * Substring starts at `pos` and is of length `len` when str is String type or
+   * Substring starts at `pos` and is of length `len` when str is String type or    字符串截取
    * returns the slice of byte array that starts at `pos` in byte and is of length `len`
    * when str is Binary type
    *
@@ -2584,7 +2584,7 @@ object functions {
   }
 
   /**
-   * Translate any character in the src by a character in replaceString.
+   * Translate any character in the src by a character in replaceString.    字符串转换
    * The characters in replaceString correspond to the characters in matchingString.
    * The translate will happen when any character in the string matches the character
    * in the `matchingString`.
@@ -2597,7 +2597,7 @@ object functions {
   }
 
   /**
-   * Trim the spaces from both ends for the specified string column.
+   * Trim the spaces from both ends for the specified string column.    左右去空格
    *
    * @group string_funcs
    * @since 1.5.0
@@ -2605,7 +2605,7 @@ object functions {
   def trim(e: Column): Column = withExpr { StringTrim(e.expr) }
 
   /**
-   * Trim the specified character from both ends for the specified string column.
+   * Trim the specified character from both ends for the specified string column.   左右去指定字符串
    * @group string_funcs
    * @since 2.3.0
    */
@@ -2614,7 +2614,7 @@ object functions {
   }
 
   /**
-   * Converts a string column to upper case.
+   * Converts a string column to upper case.   转大写
    *
    * @group string_funcs
    * @since 1.3.0
@@ -2626,7 +2626,7 @@ object functions {
   //////////////////////////////////////////////////////////////////////////////////////////////
 
   /**
-   * Returns the date that is `numMonths` after `startDate`.
+   * Returns the date that is `numMonths` after `startDate`.  加月
    *
    * @param startDate A date, timestamp or string. If a string, the data must be in a format that
    *                  can be cast to a date, such as `yyyy-MM-dd` or `yyyy-MM-dd HH:mm:ss.SSSS`
@@ -2640,7 +2640,7 @@ object functions {
   }
 
   /**
-   * Returns the current date as a date column.
+   * Returns the current date as a date column. 当前日期
    *
    * @group datetime_funcs
    * @since 1.5.0
@@ -2648,7 +2648,7 @@ object functions {
   def current_date(): Column = withExpr { CurrentDate() }
 
   /**
-   * Returns the current timestamp as a timestamp column.
+   * Returns the current timestamp as a timestamp column. 当前时间戳
    *
    * @group datetime_funcs
    * @since 1.5.0
@@ -2656,7 +2656,7 @@ object functions {
   def current_timestamp(): Column = withExpr { CurrentTimestamp() }
 
   /**
-   * Converts a date/timestamp/string to a value of string in the format specified by the date
+   * Converts a date/timestamp/string to a value of string in the format specified by the date   时间格式化
    * format given by the second argument.
    *
    * See [[java.text.SimpleDateFormat]] for valid date and time format patterns
@@ -2676,7 +2676,7 @@ object functions {
   }
 
   /**
-   * Returns the date that is `days` days after `start`
+   * Returns the date that is `days` days after `start`  加天
    *
    * @param start A date, timestamp or string. If a string, the data must be in a format that
    *              can be cast to a date, such as `yyyy-MM-dd` or `yyyy-MM-dd HH:mm:ss.SSSS`
@@ -2688,7 +2688,7 @@ object functions {
   def date_add(start: Column, days: Int): Column = withExpr { DateAdd(start.expr, Literal(days)) }
 
   /**
-   * Returns the date that is `days` days before `start`
+   * Returns the date that is `days` days before `start` 减天
    *
    * @param start A date, timestamp or string. If a string, the data must be in a format that
    *              can be cast to a date, such as `yyyy-MM-dd` or `yyyy-MM-dd HH:mm:ss.SSSS`
@@ -2700,7 +2700,7 @@ object functions {
   def date_sub(start: Column, days: Int): Column = withExpr { DateSub(start.expr, Literal(days)) }
 
   /**
-   * Returns the number of days from `start` to `end`.
+   * Returns the number of days from `start` to `end`.  计算两个日期之间相差的天数
    *
    * Only considers the date part of the input. For example:
    * {{{
@@ -2720,7 +2720,7 @@ object functions {
   def datediff(end: Column, start: Column): Column = withExpr { DateDiff(end.expr, start.expr) }
 
   /**
-   * Extracts the year as an integer from a given date/timestamp/string.
+   * Extracts the year as an integer from a given date/timestamp/string.  计算年
    * @return An integer, or null if the input was a string that could not be cast to a date
    * @group datetime_funcs
    * @since 1.5.0
@@ -2728,7 +2728,7 @@ object functions {
   def year(e: Column): Column = withExpr { Year(e.expr) }
 
   /**
-   * Extracts the quarter as an integer from a given date/timestamp/string.
+   * Extracts the quarter as an integer from a given date/timestamp/string.  计算季度
    * @return An integer, or null if the input was a string that could not be cast to a date
    * @group datetime_funcs
    * @since 1.5.0
@@ -2736,7 +2736,7 @@ object functions {
   def quarter(e: Column): Column = withExpr { Quarter(e.expr) }
 
   /**
-   * Extracts the month as an integer from a given date/timestamp/string.
+   * Extracts the month as an integer from a given date/timestamp/string.  计算月
    * @return An integer, or null if the input was a string that could not be cast to a date
    * @group datetime_funcs
    * @since 1.5.0
@@ -2744,7 +2744,7 @@ object functions {
   def month(e: Column): Column = withExpr { Month(e.expr) }
 
   /**
-   * Extracts the day of the week as an integer from a given date/timestamp/string.
+   * Extracts the day of the week as an integer from a given date/timestamp/string. 计算周中的天
    * Ranges from 1 for a Sunday through to 7 for a Saturday
    * @return An integer, or null if the input was a string that could not be cast to a date
    * @group datetime_funcs
@@ -2753,7 +2753,7 @@ object functions {
   def dayofweek(e: Column): Column = withExpr { DayOfWeek(e.expr) }
 
   /**
-   * Extracts the day of the month as an integer from a given date/timestamp/string.
+   * Extracts the day of the month as an integer from a given date/timestamp/string. 计算月中的天
    * @return An integer, or null if the input was a string that could not be cast to a date
    * @group datetime_funcs
    * @since 1.5.0
@@ -2761,7 +2761,7 @@ object functions {
   def dayofmonth(e: Column): Column = withExpr { DayOfMonth(e.expr) }
 
   /**
-   * Extracts the day of the year as an integer from a given date/timestamp/string.
+   * Extracts the day of the year as an integer from a given date/timestamp/string. 计算年中的天
    * @return An integer, or null if the input was a string that could not be cast to a date
    * @group datetime_funcs
    * @since 1.5.0
@@ -2769,7 +2769,7 @@ object functions {
   def dayofyear(e: Column): Column = withExpr { DayOfYear(e.expr) }
 
   /**
-   * Extracts the hours as an integer from a given date/timestamp/string.
+   * Extracts the hours as an integer from a given date/timestamp/string. 计算小时
    * @return An integer, or null if the input was a string that could not be cast to a date
    * @group datetime_funcs
    * @since 1.5.0
@@ -2777,7 +2777,7 @@ object functions {
   def hour(e: Column): Column = withExpr { Hour(e.expr) }
 
   /**
-   * Returns the last day of the month which the given date belongs to.
+   * Returns the last day of the month which the given date belongs to.    计算当前时间的月的最后一天
    * For example, input "2015-07-27" returns "2015-07-31" since July 31 is the last day of the
    * month in July 2015.
    *
@@ -2790,7 +2790,7 @@ object functions {
   def last_day(e: Column): Column = withExpr { LastDay(e.expr) }
 
   /**
-   * Extracts the minutes as an integer from a given date/timestamp/string.
+   * Extracts the minutes as an integer from a given date/timestamp/string.  计算分钟
    * @return An integer, or null if the input was a string that could not be cast to a date
    * @group datetime_funcs
    * @since 1.5.0
@@ -2798,7 +2798,7 @@ object functions {
   def minute(e: Column): Column = withExpr { Minute(e.expr) }
 
   /**
-   * Returns number of months between dates `start` and `end`.
+   * Returns number of months between dates `start` and `end`.  计算两个时间之间相差的月
    *
    * A whole number is returned if both inputs have the same day of month or both are the last day
    * of their respective months. Otherwise, the difference is calculated assuming 31 days per month.
@@ -2834,7 +2834,7 @@ object functions {
   }
 
   /**
-   * Returns the first date which is later than the value of the `date` column that is on the
+   * Returns the first date which is later than the value of the `date` column that is on the   计算下一个dayOfWeek 的日期
    * specified day of the week.
    *
    * For example, `next_day('2015-07-27', "Sunday")` returns 2015-08-02 because that is the first
@@ -2853,7 +2853,7 @@ object functions {
   }
 
   /**
-   * Extracts the seconds as an integer from a given date/timestamp/string.
+   * Extracts the seconds as an integer from a given date/timestamp/string.   计算秒
    * @return An integer, or null if the input was a string that could not be cast to a timestamp
    * @group datetime_funcs
    * @since 1.5.0
@@ -2861,7 +2861,7 @@ object functions {
   def second(e: Column): Column = withExpr { Second(e.expr) }
 
   /**
-   * Extracts the week number as an integer from a given date/timestamp/string.
+   * Extracts the week number as an integer from a given date/timestamp/string.  计算年中的周
    *
    * A week is considered to start on a Monday and week 1 is the first week with more than 3 days,
    * as defined by ISO 8601
@@ -2873,7 +2873,7 @@ object functions {
   def weekofyear(e: Column): Column = withExpr { WeekOfYear(e.expr) }
 
   /**
-   * Converts the number of seconds from unix epoch (1970-01-01 00:00:00 UTC) to a string
+   * Converts the number of seconds from unix epoch (1970-01-01 00:00:00 UTC) to a string  转换时间戳
    * representing the timestamp of that moment in the current system time zone in the
    * yyyy-MM-dd HH:mm:ss format.
    *
@@ -2888,7 +2888,7 @@ object functions {
   }
 
   /**
-   * Converts the number of seconds from unix epoch (1970-01-01 00:00:00 UTC) to a string
+   * Converts the number of seconds from unix epoch (1970-01-01 00:00:00 UTC) to a string   转换时间戳
    * representing the timestamp of that moment in the current system time zone in the given
    * format.
    *
@@ -2907,7 +2907,7 @@ object functions {
   }
 
   /**
-   * Returns the current Unix timestamp (in seconds) as a long.
+   * Returns the current Unix timestamp (in seconds) as a long.  返回当前时间戳
    *
    * @note All calls of `unix_timestamp` within the same query return the same value
    * (i.e. the current timestamp is calculated at the start of query evaluation).
@@ -2920,7 +2920,7 @@ object functions {
   }
 
   /**
-   * Converts time string in format yyyy-MM-dd HH:mm:ss to Unix timestamp (in seconds),
+   * Converts time string in format yyyy-MM-dd HH:mm:ss to Unix timestamp (in seconds),  转换 yyyy-MM-dd HH:mm:ss 为时间戳
    * using the default timezone and the default locale.
    *
    * @param s A date, timestamp or string. If a string, the data must be in the
@@ -2979,7 +2979,7 @@ object functions {
   }
 
   /**
-   * Converts the column into `DateType` by casting rules to `DateType`.
+   * Converts the column into `DateType` by casting rules to `DateType`.  转换为日期
    *
    * @group datetime_funcs
    * @since 1.5.0
@@ -2987,7 +2987,7 @@ object functions {
   def to_date(e: Column): Column = withExpr { new ParseToDate(e.expr) }
 
   /**
-   * Converts the column into a `DateType` with a specified format
+   * Converts the column into a `DateType` with a specified format 转换为日期
    *
    * See [[java.text.SimpleDateFormat]] for valid date and time format patterns
    *
@@ -3004,7 +3004,7 @@ object functions {
   }
 
   /**
-   * Returns date truncated to the unit specified by the format.
+   * Returns date truncated to the unit specified by the format. 截取年或月，返回日期
    *
    * For example, `trunc("2018-11-19 12:01:19", "year")` returns 2018-01-01
    *
@@ -3023,7 +3023,7 @@ object functions {
   }
 
   /**
-   * Returns timestamp truncated to the unit specified by the format.
+   * Returns timestamp truncated to the unit specified by the format. 截取年或月或日，返回时间戳
    *
    * For example, `date_tunc("2018-11-19 12:01:19", "year")` returns 2018-01-01 00:00:00
    *
@@ -3043,7 +3043,7 @@ object functions {
   }
 
   /**
-   * Given a timestamp like '2017-07-14 02:40:00.0', interprets it as a time in UTC, and renders
+   * Given a timestamp like '2017-07-14 02:40:00.0', interprets it as a time in UTC, and renders  根据tz 表达式，转换urt 时间，
    * that time as a timestamp in the given time zone. For example, 'GMT+1' would yield
    * '2017-07-14 03:40:00.0'.
    *
@@ -3072,7 +3072,7 @@ object functions {
   }
 
   /**
-   * Given a timestamp like '2017-07-14 02:40:00.0', interprets it as a time in the given time
+   * Given a timestamp like '2017-07-14 02:40:00.0', interprets it as a time in the given time  根据tz 表达式，转换为 urt 时间，
    * zone, and renders that time as a timestamp in UTC. For example, 'GMT+1' would yield
    * '2017-07-14 01:40:00.0'.
    *

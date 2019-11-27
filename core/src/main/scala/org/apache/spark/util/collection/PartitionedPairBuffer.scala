@@ -76,7 +76,9 @@ private[spark] class PartitionedPairBuffer[K, V](initialCapacity: Int = 64)
   /** Iterate through the data in a given order. For this class this is not really destructive. */
   override def partitionedDestructiveSortedIterator(keyComparator: Option[Comparator[K]])
     : Iterator[((Int, K), V)] = {
+    // partitionKeyComparator：加入对 partition 区分的逻辑; partitionComparator: 默认方法, 仅区分partition
     val comparator = keyComparator.map(partitionKeyComparator).getOrElse(partitionComparator)
+    // 使用 TimSort 排序,
     new Sorter(new KVArraySortDataFormat[(Int, K), AnyRef]).sort(data, 0, curSize, comparator)
     iterator
   }

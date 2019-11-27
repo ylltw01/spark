@@ -78,6 +78,7 @@ final class ShuffleInMemorySorter {
   }
 
   private int getUsableCapacity() {
+     // 如果是基数排序则需要array 长度2倍的空间, tim sort 则需要1.5倍
     // Radix sort requires same amount of used memory as buffer, Tim sort requires
     // half of the used memory as buffer.
     return (int) (array.size() / (useRadixSort ? 2 : 1.5));
@@ -126,6 +127,7 @@ final class ShuffleInMemorySorter {
   }
 
   public boolean hasSpaceForAnotherRecord() {
+    // usableCapacity 基数排序(默认)则需要array 长度 2 倍的空间, tim sort 则需要 1.5 倍
     return pos < usableCapacity;
   }
 
@@ -183,11 +185,13 @@ final class ShuffleInMemorySorter {
   public ShuffleSorterIterator getSortedIterator() {
     int offset = 0;
     if (useRadixSort) {
+      //  使用基数排序(默认)
       offset = RadixSort.sort(
         array, pos,
         PackedRecordPointer.PARTITION_ID_START_BYTE_INDEX,
         PackedRecordPointer.PARTITION_ID_END_BYTE_INDEX, false, false);
     } else {
+      // 使用 TimSort
       MemoryBlock unused = new MemoryBlock(
         array.getBaseObject(),
         array.getBaseOffset() + pos * 8L,

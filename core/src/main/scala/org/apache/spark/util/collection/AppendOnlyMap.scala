@@ -270,7 +270,7 @@ class AppendOnlyMap[K, V](initialCapacity: Int = 64)
       keyIndex += 1
     }
     assert(curSize == newIndex + (if (haveNullValue) 1 else 0))
-
+    // 使用 TimSort 排序
     new Sorter(new KVArraySortDataFormat[K, AnyRef]).sort(data, 0, newIndex, keyComparator)
 
     new Iterator[(K, V)] {

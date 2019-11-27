@@ -53,15 +53,17 @@ private[spark] abstract class MemoryManager(
   protected val onHeapExecutionMemoryPool = new ExecutionMemoryPool(this, MemoryMode.ON_HEAP)
   @GuardedBy("this")
   protected val offHeapExecutionMemoryPool = new ExecutionMemoryPool(this, MemoryMode.OFF_HEAP)
-
+  // 设置 onHeapStorageMemoryPool 大小为 onHeapStorageMemory
   onHeapStorageMemoryPool.incrementPoolSize(onHeapStorageMemory)
+  // 设置 onHeapExecutionMemoryPool 大小为 onHeapExecutionMemory
   onHeapExecutionMemoryPool.incrementPoolSize(onHeapExecutionMemory)
-
+  // spark.memory.offHeap.size 获取堆外内存大小
   protected[this] val maxOffHeapMemory = conf.get(MEMORY_OFFHEAP_SIZE)
   protected[this] val offHeapStorageMemory =
     (maxOffHeapMemory * conf.get(MEMORY_STORAGE_FRACTION)).toLong
-
+  // 设置堆外 offHeapExecutionMemoryPool 大小为 最大堆外内存 - 堆外 StorageMemory
   offHeapExecutionMemoryPool.incrementPoolSize(maxOffHeapMemory - offHeapStorageMemory)
+  // 设置堆外 storageMemoryPool 大小为 offHeapStorageMemory
   offHeapStorageMemoryPool.incrementPoolSize(offHeapStorageMemory)
 
   /**
@@ -121,6 +123,7 @@ private[spark] abstract class MemoryManager(
 
   /**
    * Release numBytes of execution memory belonging to the given task.
+   * 释放指定 task 内存，指定大小的内存
    */
   private[memory]
   def releaseExecutionMemory(
@@ -225,7 +228,9 @@ private[spark] abstract class MemoryManager(
    * sun.misc.Unsafe.
    */
   final val tungstenMemoryMode: MemoryMode = {
+    // spark.memory.offHeap.enabled 默认false，即使用堆内内存
     if (conf.get(MEMORY_OFFHEAP_ENABLED)) {
+      // spark.memory.offHeap.size 堆外内存大小，不能为0
       require(conf.get(MEMORY_OFFHEAP_SIZE) > 0,
         "spark.memory.offHeap.size must be > 0 when spark.memory.offHeap.enabled == true")
       require(Platform.unaligned(),
@@ -255,6 +260,7 @@ private[spark] abstract class MemoryManager(
     }
     val size = ByteArrayMethods.nextPowerOf2(maxTungstenMemory / cores / safetyFactor)
     val default = math.min(maxPageSize, math.max(minPageSize, size))
+// 如果spark.buffer.pageSize 未指定, 则为内存大小除以核数除以safetyFactor(16)得到靠近2的幂值, 在1 - 64M 之间
     conf.get(BUFFER_PAGESIZE).getOrElse(default)
   }
 

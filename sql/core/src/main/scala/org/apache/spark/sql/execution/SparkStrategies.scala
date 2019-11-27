@@ -95,6 +95,9 @@ abstract class SparkStrategies extends QueryPlanner[SparkPlan] {
    * their characteristics and their limitations.
    *
    * - Broadcast hash join (BHJ):
+   *     仅支持等值连接，join key 不需要有序。
+   *     支持除 full outer join 外的所有 join 类型。
+   *     当广播的表很小的时候，broadcast hash join 是比其他 join 算法更快。但是，广播这个操作是网络密集型的而且它还肯在某些情况下引起 OOM，尤其当广播的表比较大的时候。
    *     Only supported for equi-joins, while the join keys do not need to be sortable.
    *     Supported for all join types except full outer joins.
    *     BHJ usually performs faster than the other join algorithms when the broadcast side is
@@ -102,14 +105,23 @@ abstract class SparkStrategies extends QueryPlanner[SparkPlan] {
    *     OOM or perform badly in some cases, especially when the build/broadcast side is big.
    *
    * - Shuffle hash join:
+   *     仅支持等值连接，join key 不需要有序。
+   *     支持除 full outer join 外的所有 join 类型。
    *     Only supported for equi-joins, while the join keys do not need to be sortable.
    *     Supported for all join types except full outer joins.
    *
    * - Shuffle sort merge join (SMJ):
+   *     仅支持等值连接并且 join key 需要有序。
+   *     支持所有 join 类型。
    *     Only supported for equi-joins and the join keys have to be sortable.
    *     Supported for all join types.
    *
    * - Broadcast nested loop join (BNLJ):
+   *     支持等值连接和非等值连接。
+   *     支持所有的 join 类型，但是实现如下：
+   *         1. 在使用 right outer join 时广播左边表。
+   *         2. 在使用 left outer, left semi, left anti join等时广播右边表。
+   *         3. 在 inner-like join 时广播任意一边
    *     Supports both equi-joins and non-equi-joins.
    *     Supports all the join types, but the implementation is optimized for:
    *       1) broadcasting the left side in a right outer join;
@@ -118,6 +130,8 @@ abstract class SparkStrategies extends QueryPlanner[SparkPlan] {
    *     For other cases, we need to scan the data multiple times, which can be rather slow.
    *
    * - Shuffle-and-replicate nested loop join (a.k.a. cartesian product join):
+   *      支持等值连接和非等值连接。
+   *      仅支持 inner like joins.
    *     Supports both equi-joins and non-equi-joins.
    *     Supports only inner like joins.
    */
@@ -212,6 +226,12 @@ abstract class SparkStrategies extends QueryPlanner[SparkPlan] {
     def apply(plan: LogicalPlan): Seq[SparkPlan] = plan match {
 
       // If it is an equi-join, we first look at the join hints w.r.t. the following order:
+      // 如果是等值连接，会首先使用如下规则：
+      //   1. broadcast：如果 join 类型支持则使用 broadcast hash join，如果 join 两边都能用于广播，则使用最小的那端进行广播。
+      //   2. sort merge：如果 join key 需要有序则使用 sort merge join。
+      //   3. shuffle hash：如果 join 类型支持则使用 shuffle hash join，如果 join 两端都能用于构建 hash 表，则选择最小的那端。
+      //   4. shuffle replicate NL：如果 join 类型是 inner like，则使用笛卡尔积。
+
       //   1. broadcast hint: pick broadcast hash join if the join type is supported. If both sides
       //      have the broadcast hints, choose the smaller side (based on stats) to broadcast.
       //   2. sort merge hint: pick sort merge join if join keys are sortable.
@@ -221,6 +241,13 @@ abstract class SparkStrategies extends QueryPlanner[SparkPlan] {
       //   4. shuffle replicate NL hint: pick cartesian product if join type is inner like.
       //
       // If there is no hint or the hints are not applicable, we follow these rules one by one:
+      // 如果未匹配合适的，则会使用如下规则：
+      //   1. 如果其中一端比较小足以广播，并且 join 类型支持，则会使用 broadcast hash join。如果 join 两边都能用于广播，则使用最小的那端进行广播。
+      //   2. 如果其中一端比较小足以构建本地 hash 表，并且其比其他端的表都更小，并且参数 spark.sql.join.preferSortMergeJoin = false。
+      //   3. 如果 join 的 key 是有序的，则使用 sort merge join。
+      //   4. 如果 join 类型是 inner like，则使用笛卡尔积。
+      //   5. broadcast nested loop join 是最终的解决方案，可能会造成 OOM。
+
       //   1. Pick broadcast hash join if one side is small enough to broadcast, and the join type
       //      is supported. If both sides are small, choose the smaller side (based on stats)
       //      to broadcast.
@@ -305,6 +332,9 @@ abstract class SparkStrategies extends QueryPlanner[SparkPlan] {
           .orElse { if (hintToShuffleReplicateNL(hint)) createCartesianProduct() else None }
           .getOrElse(createJoinWithoutHint())
 
+      // 如果是非等值连接，将会首先根据如下规则：
+      //   1. broadcast：选择 broadcast nested loop join，如果 join 两边都能用于广播，则使用最小的那端进行广播。
+      //   2. shuffle replicate NL：如果 join 类型是 inner like，则使用笛卡尔积。
       // If it is not an equi-join, we first look at the join hints w.r.t. the following order:
       //   1. broadcast hint: pick broadcast nested loop join. If both sides have the broadcast
       //      hints, choose the smaller side (based on stats) to broadcast for inner and full joins,
@@ -312,6 +342,10 @@ abstract class SparkStrategies extends QueryPlanner[SparkPlan] {
       //   2. shuffle replicate NL hint: pick cartesian product if join type is inner like.
       //
       // If there is no hint or the hints are not applicable, we follow these rules one by one:
+      //   1. 如果其中有一端足够小到可以广播，则使用 broadcast nested loop join。如果仅左表可以广播并且是左连接或者仅右表可以广播并且是右连接，将跳过。
+      //      如果两边都比较小，则对于 inner 和 full join 广播更小的，对于右连接广播左表，对于左连接广播右表。
+      //   2. 如果 join 类型是 inner like，则使用笛卡尔积。
+      //   3. broadcast nested loop join 是最终的 join 方案，
       //   1. Pick broadcast nested loop join if one side is small enough to broadcast. If only left
       //      side is broadcast-able and it's left join, or only right side is broadcast-able and
       //      it's right join, we skip this rule. If both sides are small, broadcasts the smaller

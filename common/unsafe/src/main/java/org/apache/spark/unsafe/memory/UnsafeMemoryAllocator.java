@@ -26,6 +26,7 @@ public class UnsafeMemoryAllocator implements MemoryAllocator {
 
   @Override
   public MemoryBlock allocate(long size) throws OutOfMemoryError {
+    // 使用 unsafe 分配堆外内存，并返回内存地址值
     long address = Platform.allocateMemory(size);
     MemoryBlock memory = new MemoryBlock(null, address, size);
     if (MemoryAllocator.MEMORY_DEBUG_FILL_ENABLED) {
@@ -47,11 +48,14 @@ public class UnsafeMemoryAllocator implements MemoryAllocator {
     if (MemoryAllocator.MEMORY_DEBUG_FILL_ENABLED) {
       memory.fill(MemoryAllocator.MEMORY_DEBUG_FILL_FREED_VALUE);
     }
+    // 使用 unsafe 是否堆外内存
     Platform.freeMemory(memory.offset);
     // As an additional layer of defense against use-after-free bugs, we mutate the
     // MemoryBlock to reset its pointer.
+    // 设置 MemoryBlock offset 为 0
     memory.offset = 0;
     // Mark the page as freed (so we can detect double-frees).
+    // 标记该 MemoryBlock 的 pageNumber 为 已经释放
     memory.pageNumber = MemoryBlock.FREED_IN_ALLOCATOR_PAGE_NUMBER;
   }
 }

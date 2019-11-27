@@ -65,7 +65,7 @@ abstract class AbstractSqlParser extends ParserInterface with Logging {
     astBuilder.visitSingleTableSchema(parser.singleTableSchema())
   }
 
-  /** Creates LogicalPlan for a given SQL string. */
+  /** Creates LogicalPlan for a given SQL string.  解析 SQL 并创建 LogicalPlan 入口  */
   override def parsePlan(sqlText: String): LogicalPlan = parse(sqlText) { parser =>
     astBuilder.visitSingleStatement(parser.singleStatement()) match {
       case plan: LogicalPlan => plan

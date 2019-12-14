@@ -34,7 +34,7 @@ private[memory] class StorageMemoryPool(
     lock: Object,
     memoryMode: MemoryMode
   ) extends MemoryPool(lock) with Logging {
-
+  // 内存池名
   private[this] val poolName: String = memoryMode match {
     case MemoryMode.ON_HEAP => "on-heap storage"
     case MemoryMode.OFF_HEAP => "off-heap storage"
@@ -42,11 +42,11 @@ private[memory] class StorageMemoryPool(
 
   @GuardedBy("lock")
   private[this] var _memoryUsed: Long = 0L
-
+  // 内存使用量
   override def memoryUsed: Long = lock.synchronized {
     _memoryUsed
   }
-
+  // 存储内存管理的接口
   private var _memoryStore: MemoryStore = _
   def memoryStore: MemoryStore = {
     if (_memoryStore == null) {
@@ -64,7 +64,7 @@ private[memory] class StorageMemoryPool(
   }
 
   /**
-   * Acquire N bytes of memory to cache the given block, evicting existing ones if necessary.
+   * 申请存储内存（storage） Acquire N bytes of memory to cache the given block, evicting existing ones if necessary.
    *
    * @return whether all N bytes were successfully granted.
    */
@@ -74,11 +74,11 @@ private[memory] class StorageMemoryPool(
   }
 
   /**
-   * Acquire N bytes of storage memory for the given block, evicting existing ones if necessary.
+   * 申请存储内存（storage） Acquire N bytes of storage memory for the given block, evicting existing ones if necessary.
    *
    * @param blockId the ID of the block we are acquiring storage memory for
    * @param numBytesToAcquire the size of this block
-   * @param numBytesToFree the amount of space to be freed through evicting blocks
+   * @param numBytesToFree 需要释放的内存，不释放无法存储 the amount of space to be freed through evicting blocks
    * @return whether all N bytes were successfully granted.
    */
   def acquireMemory(
@@ -89,6 +89,7 @@ private[memory] class StorageMemoryPool(
     assert(numBytesToFree >= 0)
     assert(memoryUsed <= poolSize)
     if (numBytesToFree > 0) {
+      // 将内存中的数据块落盘，回收相应的内存空间
       memoryStore.evictBlocksToFreeSpace(Some(blockId), numBytesToFree, memoryMode)
     }
     // NOTE: If the memory store evicts blocks, then those evictions will synchronously call
@@ -100,7 +101,7 @@ private[memory] class StorageMemoryPool(
     }
     enoughMemory
   }
-
+  // 释放内存
   def releaseMemory(size: Long): Unit = lock.synchronized {
     if (size > _memoryUsed) {
       logWarning(s"Attempted to release $size bytes of storage " +
@@ -110,12 +111,13 @@ private[memory] class StorageMemoryPool(
       _memoryUsed -= size
     }
   }
-
+  // 释放所有的内存
   def releaseAllMemory(): Unit = lock.synchronized {
     _memoryUsed = 0
   }
 
   /**
+   * 借内存给execution，当内存不够当时候，会调用evictBlocksToFreeSpace将内存数据块落盘
    * Free space to shrink the size of this storage memory pool by `spaceToFree` bytes.
    * Note: this method doesn't actually reduce the pool size but relies on the caller to do so.
    *

@@ -90,6 +90,7 @@ private[spark] abstract class MemoryManager(
 
   /**
    * Acquire N bytes of memory to cache the given block, evicting existing ones if necessary.
+   * 申请存储内存（storage）
    *
    * @return whether all N bytes were successfully granted.
    */
@@ -97,6 +98,7 @@ private[spark] abstract class MemoryManager(
 
   /**
    * Acquire N bytes of memory to unroll the given block, evicting existing ones if necessary.
+   * 申请展开内存（unroll）
    *
    * This extra method allows subclasses to differentiate behavior between acquiring storage
    * memory and acquiring unroll memory. For instance, the memory management model in Spark
@@ -109,6 +111,7 @@ private[spark] abstract class MemoryManager(
   /**
    * Try to acquire up to `numBytes` of execution memory for the current task and return the
    * number of bytes obtained, or 0 if none can be allocated.
+   * 申请执行内存（execution）
    *
    * This call may block until there is enough free memory in some situations, to make sure each
    * task has a chance to ramp up to at least 1 / 2N of the total memory pool (where N is the # of
@@ -123,7 +126,7 @@ private[spark] abstract class MemoryManager(
 
   /**
    * Release numBytes of execution memory belonging to the given task.
-   * 释放指定 task 内存，指定大小的内存
+   * 释放执行内存（execution），指定 task 内存，指定大小的内存
    */
   private[memory]
   def releaseExecutionMemory(
@@ -138,6 +141,7 @@ private[spark] abstract class MemoryManager(
 
   /**
    * Release all memory for the given task and mark it as inactive (e.g. when a task ends).
+   * 释放所有的执行内存（execution），
    *
    * @return the number of bytes freed.
    */
@@ -147,7 +151,7 @@ private[spark] abstract class MemoryManager(
   }
 
   /**
-   * Release N bytes of storage memory.
+   * 释放存储内存（Storage）。 Release N bytes of storage memory.
    */
   def releaseStorageMemory(numBytes: Long, memoryMode: MemoryMode): Unit = synchronized {
     memoryMode match {
@@ -157,7 +161,7 @@ private[spark] abstract class MemoryManager(
   }
 
   /**
-   * Release all storage memory acquired.
+   * 释放所有的存储内存（Storage）。Release all storage memory acquired.
    */
   final def releaseAllStorageMemory(): Unit = synchronized {
     onHeapStorageMemoryPool.releaseAllMemory()
@@ -165,49 +169,49 @@ private[spark] abstract class MemoryManager(
   }
 
   /**
-   * Release N bytes of unroll memory.
+   * 释放展开内存（unroll）。Release N bytes of unroll memory.
    */
   final def releaseUnrollMemory(numBytes: Long, memoryMode: MemoryMode): Unit = synchronized {
     releaseStorageMemory(numBytes, memoryMode)
   }
 
   /**
-   * Execution memory currently in use, in bytes.
+   * 获取所有的当前的执行（execution）的内存大小，onHeap + offHeap，Execution memory currently in use, in bytes.
    */
   final def executionMemoryUsed: Long = synchronized {
     onHeapExecutionMemoryPool.memoryUsed + offHeapExecutionMemoryPool.memoryUsed
   }
 
   /**
-   * Storage memory currently in use, in bytes.
+   * 获取当前的存储（storage）的内存大小，onHeap + offHeap，Storage memory currently in use, in bytes.
    */
   final def storageMemoryUsed: Long = synchronized {
     onHeapStorageMemoryPool.memoryUsed + offHeapStorageMemoryPool.memoryUsed
   }
 
   /**
-   *  On heap execution memory currently in use, in bytes.
+   * 获取堆内（onHeap）的执行（Execution）的内存大小， On heap execution memory currently in use, in bytes.
    */
   final def onHeapExecutionMemoryUsed: Long = synchronized {
     onHeapExecutionMemoryPool.memoryUsed
   }
 
   /**
-   *  Off heap execution memory currently in use, in bytes.
+   * 获取堆外（onHeap）的执行（Execution）的内存大小， Off heap execution memory currently in use, in bytes.
    */
   final def offHeapExecutionMemoryUsed: Long = synchronized {
     offHeapExecutionMemoryPool.memoryUsed
   }
 
   /**
-   *  On heap storage memory currently in use, in bytes.
+   * 获取堆内（onHeap）的存储（Storage）的内存大小，On heap storage memory currently in use, in bytes.
    */
   final def onHeapStorageMemoryUsed: Long = synchronized {
     onHeapStorageMemoryPool.memoryUsed
   }
 
   /**
-   *  Off heap storage memory currently in use, in bytes.
+   * 获取堆外（offHeap）的存储（Storage）的内存大小， Off heap storage memory currently in use, in bytes.
    */
   final def offHeapStorageMemoryUsed: Long = synchronized {
     offHeapStorageMemoryPool.memoryUsed

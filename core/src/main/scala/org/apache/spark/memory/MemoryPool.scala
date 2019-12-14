@@ -33,21 +33,21 @@ private[memory] abstract class MemoryPool(lock: Object) {
   private[this] var _poolSize: Long = 0
 
   /**
-   * Returns the current size of the pool, in bytes.
+   * 返回内存池大小，Returns the current size of the pool, in bytes.
    */
   final def poolSize: Long = lock.synchronized {
     _poolSize
   }
 
   /**
-   * Returns the amount of free memory in the pool, in bytes.
+   * 返回可用的内存池大小，Returns the amount of free memory in the pool, in bytes.
    */
   final def memoryFree: Long = lock.synchronized {
     _poolSize - memoryUsed
   }
 
   /**
-   * Expands the pool by `delta` bytes.
+   * 扩大内存池大小， Expands the pool by `delta` bytes.
    */
   final def incrementPoolSize(delta: Long): Unit = lock.synchronized {
     require(delta >= 0)
@@ -55,7 +55,7 @@ private[memory] abstract class MemoryPool(lock: Object) {
   }
 
   /**
-   * Shrinks the pool by `delta` bytes.
+   * 缩小内存池大小，Shrinks the pool by `delta` bytes.
    */
   final def decrementPoolSize(delta: Long): Unit = lock.synchronized {
     require(delta >= 0)
@@ -65,7 +65,7 @@ private[memory] abstract class MemoryPool(lock: Object) {
   }
 
   /**
-   * Returns the amount of used memory in this pool (in bytes).
+   * 返回内存池当前的使用量，Returns the amount of used memory in this pool (in bytes).
    */
   def memoryUsed: Long
 }

@@ -50,6 +50,7 @@ private[memory] class ExecutionMemoryPool(
   }
 
   /**
+   * 记录task 的使用量，taskid -> 内存使用量
    * Map from taskAttemptId -> memory consumption in bytes
    */
   @GuardedBy("lock")

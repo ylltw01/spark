@@ -138,6 +138,7 @@ abstract class SparkStrategies extends QueryPlanner[SparkPlan] {
   object JoinSelection extends Strategy with PredicateHelper {
 
     /**
+     * 判断输入的 LogicalPlan，是否小于等于 spark.sql.autoBroadcastJoinThreshold = 10M 默认 10 兆
      * Matches a plan whose output should be small enough to be used in broadcast join.
      */
     private def canBroadcast(plan: LogicalPlan): Boolean = {
@@ -146,7 +147,8 @@ abstract class SparkStrategies extends QueryPlanner[SparkPlan] {
 
     /**
      * Matches a plan whose single partition should be small enough to build a hash table.
-     *
+     * 判断输入的 LogicalPlan，是否足够小以构建 hash 表，其大小要小于 spark.sql.autoBroadcastJoinThreshold = 10M *  spark.sql.shuffle.partitions = 200
+     * 即是，其要满足构建广播的到 shuffler 个数的乘积
      * Note: this assume that the number of partition is fixed, requires additional work if it's
      * dynamic.
      */
@@ -156,7 +158,8 @@ abstract class SparkStrategies extends QueryPlanner[SparkPlan] {
 
     /**
      * Returns whether plan a is much smaller (3X) than plan b.
-     *
+     * 判断 LogicalPlan a * 3 是否比 LogicalPlan b 小，
+     * 因为构建hash map 的消耗要远高于 排序，因此仅仅在其中一个表足够小于另一个表时候，才会去构建 hash map
      * The cost to build hash map is higher than sorting, we should only build hash map on a table
      * that is much smaller than other one. Since we does not have the statistic for number of rows,
      * use the size of bytes here as estimation.

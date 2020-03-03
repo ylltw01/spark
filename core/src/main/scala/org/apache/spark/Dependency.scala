@@ -26,7 +26,7 @@ import org.apache.spark.shuffle.{ShuffleHandle, ShuffleWriteProcessor}
 
 /**
  * :: DeveloperApi ::
- * Base class for dependencies.
+ * spark rdd 间依赖关系抽象 Base class for dependencies.
  */
 @DeveloperApi
 abstract class Dependency[T] extends Serializable {
@@ -36,13 +36,13 @@ abstract class Dependency[T] extends Serializable {
 
 /**
  * :: DeveloperApi ::
- * Base class for dependencies where each partition of the child RDD depends on a small number
+ * 窄依赖抽象 Base class for dependencies where each partition of the child RDD depends on a small number
  * of partitions of the parent RDD. Narrow dependencies allow for pipelined execution.
  */
 @DeveloperApi
 abstract class NarrowDependency[T](_rdd: RDD[T]) extends Dependency[T] {
   /**
-   * Get the parent partitions for a child partition.
+   * 获取子rdd 分区对应的父rdd 的分区 Get the parent partitions for a child partition.
    * @param partitionId a partition of the child RDD
    * @return the partitions of the parent RDD that the child partition depends upon
    */
@@ -54,7 +54,7 @@ abstract class NarrowDependency[T](_rdd: RDD[T]) extends Dependency[T] {
 
 /**
  * :: DeveloperApi ::
- * Represents a dependency on the output of a shuffle stage. Note that in the case of shuffle,
+ * 宽依赖，代表其输出是shuffle stage Represents a dependency on the output of a shuffle stage. Note that in the case of shuffle,
  * the RDD is transient since we don't need it on the executor side.
  *
  * @param _rdd the parent RDD
@@ -101,7 +101,7 @@ class ShuffleDependency[K: ClassTag, V: ClassTag, C: ClassTag](
 
 /**
  * :: DeveloperApi ::
- * Represents a one-to-one dependency between partitions of the parent and child RDDs.
+ * 1 对 1 依赖 Represents a one-to-one dependency between partitions of the parent and child RDDs.
  */
 @DeveloperApi
 class OneToOneDependency[T](rdd: RDD[T]) extends NarrowDependency[T](rdd) {
@@ -111,7 +111,7 @@ class OneToOneDependency[T](rdd: RDD[T]) extends NarrowDependency[T](rdd) {
 
 /**
  * :: DeveloperApi ::
- * Represents a one-to-one dependency between ranges of partitions in the parent and child RDDs.
+ * 1 对 1 依赖  Represents a one-to-one dependency between ranges of partitions in the parent and child RDDs.
  * @param rdd the parent RDD
  * @param inStart the start of the range in the parent RDD
  * @param outStart the start of the range in the child RDD

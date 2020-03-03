@@ -124,6 +124,7 @@ public class UnsafeShuffleWriter<K, V> extends ShuffleWriter<K, V> {
       TaskContext taskContext,
       SparkConf sparkConf,
       ShuffleWriteMetricsReporter writeMetrics) throws IOException {
+    // 父RDD 的分区个数
     final int numPartitions = handle.dependency().partitioner().numPartitions();
     if (numPartitions > SortShuffleManager.MAX_SHUFFLE_OUTPUT_PARTITIONS_FOR_SERIALIZED_MODE()) {
       throw new IllegalArgumentException(
@@ -153,6 +154,7 @@ public class UnsafeShuffleWriter<K, V> extends ShuffleWriter<K, V> {
     // spark.shuffle.unsafe.file.output.buffer   merge文件输出的缓冲大小   32k
     this.outputBufferSizeInBytes =
       (int) (long) sparkConf.get(package$.MODULE$.SHUFFLE_UNSAFE_FILE_OUTPUT_BUFFER_SIZE()) * 1024;
+    // 初始化排序对象和序列化输出对象
     open();
   }
 

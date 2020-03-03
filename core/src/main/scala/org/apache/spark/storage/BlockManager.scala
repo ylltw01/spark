@@ -116,7 +116,7 @@ private[spark] class ByteBufferBlockData(
 /**
  * Manager running on every node (driver and executors) which provides interfaces for putting and
  * retrieving blocks both locally and remotely into various stores (memory, disk, and off-heap).
- *
+ * 管理在每个节点（driver 和 executors）的 blocks，并提供 put 和检索的功能，在本地或者远程至各种其他存储
  * Note that [[initialize()]] must be called before the BlockManager is usable.
  */
 private[spark] class BlockManager(

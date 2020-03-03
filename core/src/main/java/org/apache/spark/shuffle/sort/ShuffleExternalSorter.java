@@ -130,7 +130,7 @@ final class ShuffleExternalSorter extends MemoryConsumer {
     this.taskContext = taskContext;
     this.numPartitions = numPartitions;
     // Use getSizeAsKb (not bytes) to maintain backwards compatibility if no units are provide
-    // spark.shuffle.file.buffer   32k
+    //  shuffle 时，每个文件在内存中缓冲区大小，spark.shuffle.file.buffer   32k
     this.fileBufferSizeBytes =
         (int) (long) conf.get(package$.MODULE$.SHUFFLE_FILE_BUFFER_SIZE()) * 1024;
     // spark.shuffle.spill.numElementsForceSpillThreshold 强制溢写文件的条数，默认是Integer最大值, 也就是不强制溢写, 除非由于其他限制比如内存不够等
@@ -434,7 +434,7 @@ final class ShuffleExternalSorter extends MemoryConsumer {
     // 判断内存是否足够, 不足溢写磁盘
     growPointerArrayIfNecessary();
     final int uaoSize = UnsafeAlignedOffset.getUaoSize();
-    // Need 4 or 8 bytes to store the record length.
+    // 需要4 或者8 个字节去存储记录的长度。 Need 4 or 8 bytes to store the record length.
     final int required = length + uaoSize;
     // 如果currentPage内存不足，申请分配一个新的 page
     acquireNewPageIfNecessary(required);

@@ -36,7 +36,7 @@ import org.apache.spark.unsafe.memory.MemoryBlock;
 import org.apache.spark.util.Utils;
 
 /**
- * Manages the memory allocated by an individual task.
+ * 管理task 内存的申请  Manages the memory allocated by an individual task.
  * <p>
  * Most of the complexity in this class deals with encoding of off-heap addresses into 64-bit longs.
  * In off-heap mode, memory can be directly addressed with 64-bit longs. In on-heap mode, memory is

@@ -20,6 +20,7 @@ package org.apache.spark.unsafe.memory;
 import javax.annotation.Nullable;
 
 /**
+ * 描述内存地址，既可以用于堆外内存申请也可用于堆内存申请
  * A memory location. Tracked either by a memory address (with off-heap allocation),
  * or by an offset from a JVM object (on-heap allocation).
  */

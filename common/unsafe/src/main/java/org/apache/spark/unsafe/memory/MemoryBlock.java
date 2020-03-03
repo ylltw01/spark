@@ -22,6 +22,7 @@ import javax.annotation.Nullable;
 import org.apache.spark.unsafe.Platform;
 
 /**
+ * 描述内存中连续的数据块，从固定大小的 MemoryLocation 开始
  * A consecutive block of memory, starting at a {@link MemoryLocation} with a fixed size.
  */
 public class MemoryBlock extends MemoryLocation {

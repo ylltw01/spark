@@ -36,6 +36,7 @@ import org.apache.spark.util.random.SamplingUtils
  *
  * Note that, partitioner must be deterministic, i.e. it must return the same partition id given
  * the same partition key.
+ * 用于分区的抽象类，分区id 从0 至 numPartitions - 1；注意的是对于相同的 key 必须返回同一个分区 id
  */
 abstract class Partitioner extends Serializable {
   def numPartitions: Int
@@ -61,17 +62,20 @@ object Partitioner {
    * out-of-memory errors.
    *
    * We use two method parameters (rdd, others) to enforce callers passing at least 1 RDD.
+   * 根据输入RDD 返回默认的  Partitioner 分区策略
    */
   def defaultPartitioner(rdd: RDD[_], others: RDD[_]*): Partitioner = {
     val rdds = (Seq(rdd) ++ others)
+    // 过滤出存在 Partitioner 且分区数大于0的 RDD
     val hasPartitioner = rdds.filter(_.partitioner.exists(_.numPartitions > 0))
 
+    // 如果存在 Partitioner，则过滤出分区数最大的 RDD
     val hasMaxPartitioner: Option[RDD[_]] = if (hasPartitioner.nonEmpty) {
       Some(hasPartitioner.maxBy(_.partitions.length))
     } else {
       None
     }
-
+    // 如果 spark.default.parallelism 设置了，则返回该值；否则返回输入的 rdd 中最大的分区数
     val defaultNumPartitions = if (rdd.context.conf.contains("spark.default.parallelism")) {
       rdd.context.defaultParallelism
     } else {
@@ -80,10 +84,12 @@ object Partitioner {
 
     // If the existing max partitioner is an eligible one, or its partitions number is larger
     // than or equal to the default number of partitions, use the existing partitioner.
+    // 如果存在一个合适的 partitioner 或者 defaultNumPartitions <= 存在的 partitioner 的分区数，则返回已经存在的 partitioner
     if (hasMaxPartitioner.nonEmpty && (isEligiblePartitioner(hasMaxPartitioner.get, rdds) ||
         defaultNumPartitions <= hasMaxPartitioner.get.getNumPartitions)) {
       hasMaxPartitioner.get.partitioner.get
     } else {
+      // 否则返回 HashPartitioner
       new HashPartitioner(defaultNumPartitions)
     }
   }
@@ -97,6 +103,7 @@ object Partitioner {
      hasMaxPartitioner: RDD[_],
      rdds: Seq[RDD[_]]): Boolean = {
     val maxPartitions = rdds.map(_.partitions.length).max
+    // maxPartitions <= hasMaxPartitioner.getNumPartitions
     log10(maxPartitions) - log10(hasMaxPartitioner.getNumPartitions) < 1
   }
 }
@@ -108,6 +115,8 @@ object Partitioner {
  * Java arrays have hashCodes that are based on the arrays' identities rather than their contents,
  * so attempting to partition an RDD[Array[_]] or RDD[(Array[_], _)] using a HashPartitioner will
  * produce an unexpected or incorrect result.
+ *
+ * HashPartitioner key 取hash 并求模
  */
 class HashPartitioner(partitions: Int) extends Partitioner {
   require(partitions >= 0, s"Number of partitions ($partitions) cannot be negative.")
@@ -133,6 +142,7 @@ class HashPartitioner(partitions: Int) extends Partitioner {
  * A [[org.apache.spark.Partitioner]] that partitions sortable records by range into roughly
  * equal ranges. The ranges are determined by sampling the content of the RDD passed in.
  *
+ * 该 Partitioner 将需排序的数据按照大致的范围分成若干个 partition，该分区是通过对 rdd 内容采样后进行分区
  * @note The actual number of partitions created by the RangePartitioner might not be the same
  * as the `partitions` parameter, in the case where the number of sampled records is less than
  * the value of `partitions`.

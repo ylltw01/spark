@@ -192,7 +192,7 @@ private[spark] object SortShuffleManager extends Logging {
     val shufId = dependency.shuffleId
     val numPartitions = dependency.partitioner.numPartitions
     if (!dependency.serializer.supportsRelocationOfSerializedObjects) {/** 序列化方式是否支持 Relocation,  */
-      // 序列化方式是否支持 Relocation,不是很明白,core中JavaSerializer会直接返回false,KryoSerializer会判断是否autoReset
+      // 序列化方式是否支持 Relocation,core中JavaSerializer会直接返回false,KryoSerializer会判断是否autoReset
       log.debug(s"Can't use serialized shuffle for shuffle $shufId because the serializer, " +
         s"${dependency.serializer.getClass.getName}, does not support object relocation")
       false

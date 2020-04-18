@@ -83,6 +83,7 @@ private[spark] class UnifiedMemoryManager(
    * but an older task had a lot of memory already.
    */
   override private[memory] def acquireExecutionMemory(
+      // 申请内存大小
       numBytes: Long,
       taskAttemptId: Long,
       memoryMode: MemoryMode): Long = synchronized {
@@ -177,12 +178,16 @@ private[spark] class UnifiedMemoryManager(
         s"memory limit ($maxMemory bytes)")
       return false
     }
+    // 如果申请的内存大于了 Storage 内存的空闲内存
     if (numBytes > storagePool.memoryFree) {
       // There is not enough free memory in the storage pool, so try to borrow free memory from
       // the execution pool.
+      // 计算需要从 Execution 借用的内存的大小
       val memoryBorrowedFromExecution = Math.min(executionPool.memoryFree,
         numBytes - storagePool.memoryFree)
+      // Exectuion 减去借用大小
       executionPool.decrementPoolSize(memoryBorrowedFromExecution)
+      // Storage 加上借用的大小
       storagePool.incrementPoolSize(memoryBorrowedFromExecution)
     }
     storagePool.acquireMemory(blockId, numBytes)
@@ -205,6 +210,7 @@ object UnifiedMemoryManager {
   private val RESERVED_SYSTEM_MEMORY_BYTES = 300 * 1024 * 1024
 
   def apply(conf: SparkConf, numCores: Int): UnifiedMemoryManager = {
+    // 获取 Storage 和 Execution 最大可使用的内存
     val maxMemory = getMaxMemory(conf)
     new UnifiedMemoryManager(
       conf,

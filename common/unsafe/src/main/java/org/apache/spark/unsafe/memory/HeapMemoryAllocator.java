@@ -46,7 +46,7 @@ public class HeapMemoryAllocator implements MemoryAllocator {
 
   @Override
   public MemoryBlock allocate(long size) throws OutOfMemoryError {
-    // 这里加 7 个字节，有点不太懂，对齐？？
+    // 以8字节对齐的方式申请长度为 ((size + 7) / 8) 的 long 数组，得到 array
     int numWords = (int) ((size + 7) / 8);
     long alignedSize = numWords * 8L;
     assert (alignedSize >= size);

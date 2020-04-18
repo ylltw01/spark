@@ -271,6 +271,7 @@ class KryoSerializer(conf: SparkConf)
     // If auto-reset is disabled, then Kryo may store references to duplicate occurrences of objects
     // in the stream rather than writing those objects' serialized bytes, breaking relocation. See
     // https://groups.google.com/d/msg/kryo-users/6ZUSyfjjtdo/FhGG1KHDXPgJ for more details.
+    // 判断Kryo 中的 autoReset 参数是否为true（默认为true），具体可以看这个链接 https://groups.google.com/d/msg/kryo-users/6ZUSyfjjtdo/FhGG1KHDXPgJ
     newInstance().asInstanceOf[KryoSerializerInstance].getAutoReset()
   }
 }

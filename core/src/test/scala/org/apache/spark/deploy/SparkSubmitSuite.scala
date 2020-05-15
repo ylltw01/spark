@@ -1217,7 +1217,8 @@ class SparkSubmitSuite
   test("start SparkApplication without modifying system properties") {
     val args = Array(
       "--class", classOf[TestSparkApplication].getName(),
-      "--master", "local",
+      "--master", "yarn",
+      "--deploy-mode", "client",
       "--conf", "spark.test.hello=world",
       "spark-internal",
       "hello")

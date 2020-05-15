@@ -70,7 +70,7 @@ private[spark] class ApplicationMaster(
     } else {
       null
     }
-
+  // 判断是否是 yarn cluster 模式，判断的依据是，启动 ApplicationMaster 的参数中，是否有 userClass 即用户的主类。client 是直接启动 userClass ，因此不会有该参数
   private val isClusterMode = args.userClass != null
 
   private val securityMgr = new SecurityManager(sparkConf)
@@ -206,6 +206,7 @@ private[spark] class ApplicationMaster(
     resources.toMap
   }
 
+  // 提交任务 yarn client 或 yarn cluster 模式下运行 ApplicationMaster
   final def run(): Int = {
     try {
       val attemptID = if (isClusterMode) {
@@ -259,8 +260,10 @@ private[spark] class ApplicationMaster(
       }
 
       if (isClusterMode) {
+        // yarn cluster
         runDriver()
       } else {
+        // yarn client
         runExecutorLauncher()
       }
     } catch {
@@ -484,8 +487,12 @@ private[spark] class ApplicationMaster(
     reporterThread = launchReporterThread()
   }
 
+  /**
+    * 提交任务：yarn cluster 启动 Driver
+    */
   private def runDriver(): Unit = {
     addAmIpFilter(None, System.getenv(ApplicationConstants.APPLICATION_WEB_PROXY_BASE_ENV))
+    // 启动 UserClass.main()，即启动 Spark Driver 线程
     userClassThread = startUserApplication()
 
     // This a bit hacky, but we need to wait until the spark.driver.port property has
@@ -493,6 +500,7 @@ private[spark] class ApplicationMaster(
     logInfo("Waiting for spark context initialization...")
     val totalWaitTime = sparkConf.get(AM_MAX_WAIT_TIME)
     try {
+      // 拿到 SparkContext
       val sc = ThreadUtils.awaitResult(sparkContextPromise.future,
         Duration(totalWaitTime, TimeUnit.MILLISECONDS))
       if (sc != null) {
@@ -501,6 +509,7 @@ private[spark] class ApplicationMaster(
         val userConf = sc.getConf
         val host = userConf.get(DRIVER_HOST_ADDRESS)
         val port = userConf.get(DRIVER_PORT)
+        // 注册 ApplicationMaster 至 ResourceManager
         registerAM(host, port, userConf, sc.ui.map(_.webUrl), appAttemptId)
 
         val driverRef = rpcEnv.setupEndpointRef(
@@ -527,6 +536,9 @@ private[spark] class ApplicationMaster(
     }
   }
 
+  /**
+    * 提交任务：yarn client
+    */
   private def runExecutorLauncher(): Unit = {
     val hostname = Utils.localHostName
     val amCores = sparkConf.get(AM_CORES)
@@ -693,6 +705,7 @@ private[spark] class ApplicationMaster(
    * we assume it was successful, for all other cases we assume failure.
    *
    * Returns the user thread that was started.
+   * yarn cluster 执行用户提交的 UserClass.main
    */
   private def startUserApplication(): Thread = {
     logInfo("Starting the user application in a separate Thread")
@@ -706,7 +719,7 @@ private[spark] class ApplicationMaster(
     if (args.primaryRFile != null && args.primaryRFile.endsWith(".R")) {
       // TODO(davies): add R dependencies here
     }
-
+    // 拿到 UserClass.main method
     val mainMethod = userClassLoader.loadClass(args.userClass)
       .getMethod("main", classOf[Array[String]])
 
@@ -717,6 +730,7 @@ private[spark] class ApplicationMaster(
             logError(s"Could not find static main method in object ${args.userClass}")
             finish(FinalApplicationStatus.FAILED, ApplicationMaster.EXIT_EXCEPTION_USER_CLASS)
           } else {
+            // 开始执行main 方法
             mainMethod.invoke(null, userArgs.toArray)
             finish(FinalApplicationStatus.SUCCEEDED, ApplicationMaster.EXIT_SUCCESS)
             logDebug("Done running user class")
@@ -746,6 +760,7 @@ private[spark] class ApplicationMaster(
         }
       }
     }
+    // 启动用户线程
     userThread.setContextClassLoader(userClassLoader)
     userThread.setName("Driver")
     userThread.start()
@@ -829,11 +844,16 @@ object ApplicationMaster extends Logging {
 
   private var master: ApplicationMaster = _
 
+  /**
+    * 提交任务：yarn cluster 直接执行 ApplicationMaster 的 main 方法，yarn client 通过 ExecutorLauncher 执行
+    */
   def main(args: Array[String]): Unit = {
     SignalUtils.registerLogger(log)
+    // 解析启动 ApplicationMaster 参数
     val amArgs = new ApplicationMasterArguments(args)
     val sparkConf = new SparkConf()
     if (amArgs.propertiesFile != null) {
+      // 读取 --properties-file 参数
       Utils.getPropertiesFromFile(amArgs.propertiesFile).foreach { case (k, v) =>
         sparkConf.set(k, v)
       }
@@ -849,7 +869,7 @@ object ApplicationMaster extends Logging {
 
     val yarnConf = new YarnConfiguration(SparkHadoopUtil.newConfiguration(sparkConf))
     master = new ApplicationMaster(amArgs, sparkConf, yarnConf)
-
+    // 解析 kerberos 相关参数，principal，keytab
     val ugi = sparkConf.get(PRINCIPAL) match {
       case Some(principal) =>
         val originalCreds = UserGroupInformation.getCurrentUser().getCredentials()
@@ -865,6 +885,7 @@ object ApplicationMaster extends Logging {
     }
 
     ugi.doAs(new PrivilegedExceptionAction[Unit]() {
+      // 执行启动 ApplicationMaster
       override def run(): Unit = System.exit(master.run())
     })
   }
@@ -892,6 +913,8 @@ object ApplicationMaster extends Logging {
 /**
  * This object does not provide any special functionality. It exists so that it's easy to tell
  * apart the client-mode AM from the cluster-mode AM when using tools such as ps or jps.
+ *
+ * 提交任务：yarn client 的启动的 ApplicationMaster，ExecutorLauncher 只是包装了 ApplicationMaster，方便在通过 ps 或者 jps 进行区分
  */
 object ExecutorLauncher {
 

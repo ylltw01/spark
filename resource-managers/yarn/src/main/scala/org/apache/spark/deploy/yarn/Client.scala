@@ -157,6 +157,11 @@ private[spark] class Client(
    * The stable Yarn API provides a convenience method (YarnClient#createApplication) for
    * creating applications and setting up the application submission context. This was not
    * available in the alpha API.
+   * 提交任务至 yarn ResourceManager，并 yarn 集群中启动 ApplicationMaster
+   * 调用该方法有两个地方：
+   * 1. yarn client 模式下 YarnClientSchedulerBackend 类的 start() 方法。client 模式下 spark driver 与 spark client(启动Spark进程即spark-submit)
+   *    是同一个进程，因此 YarnClientSchedulerBackend 是在初始化 SparkContext 时候初始化并调用 start 方法。 然后该方法启动 ApplicationMaster
+   * 2. yarn cluster 模式下 run 方法调用，spark client(启动Spark进程即spark-submit) 执行， 然后该方法启动 ApplicationMaster 并启动 spark driver 。
    */
   def submitApplication(): ApplicationId = {
     ResourceRequestHelper.validateResources(sparkConf)
@@ -1163,6 +1168,7 @@ private[spark] class Client(
    * throw an appropriate SparkException.
    */
   def run(): Unit = {
+    // 任务提交：提交任务至 yarn ResourceManager，并 yarn 集群中启动 ApplicationMaster
     this.appId = submitApplication()
     if (!launcherBackend.isConnected() && fireAndForget) {
       val report = getApplicationReport(appId)
@@ -1565,7 +1571,7 @@ private[spark] class YarnClusterApplication extends SparkApplication {
     // so remove them from sparkConf here for yarn mode.
     conf.remove(JARS)
     conf.remove(FILES)
-
+    // 任务提交： yarnCluster 模式下，client 端启动
     new Client(new ClientArguments(args), conf, null).run()
   }
 

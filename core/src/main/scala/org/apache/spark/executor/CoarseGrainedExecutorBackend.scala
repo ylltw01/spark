@@ -45,6 +45,7 @@ import org.apache.spark.scheduler.cluster.CoarseGrainedClusterMessages._
 import org.apache.spark.serializer.SerializerInstance
 import org.apache.spark.util.{ThreadUtils, Utils}
 
+// Executor container 入口类
 private[spark] class CoarseGrainedExecutorBackend(
     override val rpcEnv: RpcEnv,
     driverUrl: String,
@@ -282,6 +283,12 @@ private[spark] class CoarseGrainedExecutorBackend(
   }
 }
 
+// org.apache.spark.executor.CoarseGrainedExecutorBackend
+// --driver-url spark://CoarseGrainedScheduler@sdc145.sefon.com:39341
+// --executor-id 2
+// --hostname sdc146.sefon.com --cores 1
+// --app-id application_1587365236189_0087
+// --user-class-path file:/hadoop/yarn/local/usercache/root/appcache/application_1587365236189_0087/container_e10_1587365236189_0087_01_000003/__app__.jar
 private[spark] object CoarseGrainedExecutorBackend extends Logging {
 
   case class Arguments(
@@ -431,3 +438,92 @@ private[spark] object CoarseGrainedExecutorBackend extends Logging {
     System.exit(1)
   }
 }
+
+// yarn client 模式 --executor-memory 1g --executor-cores 1 --num-executors 3
+
+// 27623 org.apache.spark.deploy.yarn.ExecutorLauncher
+// --arg sdc145.sefon.com:42355
+// --properties-file /hadoop/yarn/local/usercache/root/appcache/application_1587365236189_0136/container_e10_1587365236189_0136_01_000001/__spark_conf__/__spark_conf__.properties
+
+
+// 27675 org.apache.spark.executor.CoarseGrainedExecutorBackend
+// --driver-url spark://CoarseGrainedScheduler@sdc145.sefon.com:42355
+// --executor-id 1
+// --hostname sdc142.sefon.com
+// --cores 1
+// --app-id application_1587365236189_0136
+// --user-class-path file:/hadoop/yarn/local/usercache/root/appcache/application_1587365236189_0136/container_e10_1587365236189_0136_01_000002/__app__.jar
+
+// 32243 org.apache.spark.executor.CoarseGrainedExecutorBackend
+// --driver-url spark://CoarseGrainedScheduler@sdc145.sefon.com:42355
+// --executor-id 2
+// --hostname sdc146.sefon.com
+// --cores 1
+// --app-id application_1587365236189_0136
+// --user-class-path file:/hadoop/yarn/local/usercache/root/appcache/application_1587365236189_0136/container_e10_1587365236189_0136_01_000003/__app__.jar
+
+// 27354 org.apache.spark.executor.CoarseGrainedExecutorBackend
+// --driver-url spark://CoarseGrainedScheduler@sdc145.sefon.com:42355
+// --executor-id 3
+// --hostname sdc143.sefon.com
+// --cores 1
+// --app-id application_1587365236189_0136
+// --user-class-path file:/hadoop/yarn/local/usercache/root/appcache/application_1587365236189_0136/container_e10_1587365236189_0136_01_000004/__app__.jar
+/*
+
+
+SparkSubmit
+
+yarn-client： new JavaMainApplication(mainClass(用户传入的主类))
+yarn-cluster：org.apache.spark.deploy.yarn.YarnClusterApplication
+
+
+
+在 spark2.X 版本，启动 executor 使用的 org.apache.spark.executor.CoarseGrainedExecutorBackend
+但是在 Spark3.0 之后，使用的是 org.apache.spark.executor.YarnCoarseGrainedExecutorBackend 相关原因如下 issues
+https://issues.apache.org/jira/browse/SPARK-26790
+
+
+20/05/15 16:50:53 INFO ApplicationMaster:
+===============================================================================
+YARN executor launch context:
+  env:
+    CLASSPATH -> {{PWD}}<CPS>{{PWD}}/__spark_conf__<CPS>{{PWD}}/__spark_libs__/*<CPS>$HADOOP_CONF_DIR<CPS>/usr/hdp/current/hadoop-client/*<CPS>/usr/hdp/current/hadoop-client/lib/*<CPS>/usr/hdp/current/hadoop-hdfs-client/*<CPS>/usr/hdp/current/hadoop-hdfs-client/lib/*<CPS>/usr/hdp/current/hadoop-yarn-client/*<CPS>/usr/hdp/current/hadoop-yarn-client/lib/*<CPS>$PWD/mr-framework/hadoop/share/hadoop/mapreduce/*:$PWD/mr-framework/hadoop/share/hadoop/mapreduce/lib/*:$PWD/mr-framework/hadoop/share/hadoop/common/*:$PWD/mr-framework/hadoop/share/hadoop/common/lib/*:$PWD/mr-framework/hadoop/share/hadoop/yarn/*:$PWD/mr-framework/hadoop/share/hadoop/yarn/lib/*:$PWD/mr-framework/hadoop/share/hadoop/hdfs/*:$PWD/mr-framework/hadoop/share/hadoop/hdfs/lib/*:$PWD/mr-framework/hadoop/share/hadoop/tools/lib/*:/etc/hadoop/conf/secure<CPS>{{PWD}}/__spark_conf__/__hadoop_conf__
+    SPARK_YARN_STAGING_DIR -> hdfs://sdc143.sefon.com:8020/user/root/.sparkStaging/application_1587365236189_0602
+    SPARK_USER -> root
+
+  command:
+    LD_LIBRARY_PATH="/usr/sdp/current/hadoop-client/lib/native:/usr/sdp/current/hadoop-client/lib/native/Linux-amd64-64:$LD_LIBRARY_PATH" \
+      {{JAVA_HOME}}/bin/java \
+      -server \
+      -Xmx3072m \
+      '-XX:+UseNUMA' \
+      -Djava.io.tmpdir={{PWD}}/tmp \
+      '-Dspark.history.ui.port=18081' \
+      -Dspark.yarn.app.container.log.dir=<LOG_DIR> \
+      -XX:OnOutOfMemoryError='kill %p' \
+      org.apache.spark.executor.CoarseGrainedExecutorBackend \
+      --driver-url \
+      spark://CoarseGrainedScheduler@sdc143.sefon.com:42840 \
+      --executor-id \
+      <executorId> \
+      --hostname \
+      <hostname> \
+      --cores \
+      1 \
+      --app-id \
+      application_1587365236189_0602 \
+      --user-class-path \
+      file:$PWD/__app__.jar \
+      1><LOG_DIR>/stdout \
+      2><LOG_DIR>/stderr
+
+  resources:
+    __app__.jar -> resource { scheme: "hdfs" host: "sdc143.sefon.com" port: 8020 file: "/user/root/.sparkStaging/application_1587365236189_0602/spark-examples_2.11-2.3.2.jar" } size: 1997550 timestamp: 1589532648693 type: FILE visibility: PRIVATE
+    __spark_libs__ -> resource { scheme: "hdfs" host: "sdc143.sefon.com" port: 8020 file: "/user/root/.sparkStaging/application_1587365236189_0602/__spark_libs__2236303822718028422.zip" } size: 230921750 timestamp: 1589532648520 type: ARCHIVE visibility: PRIVATE
+    __spark_conf__ -> resource { scheme: "hdfs" host: "sdc143.sefon.com" port: 8020 file: "/user/root/.sparkStaging/application_1587365236189_0602/__spark_conf__.zip" } size: 237172 timestamp: 1589532648833 type: ARCHIVE visibility: PRIVATE
+
+===============================================================================
+20/05/15 16:50:53 INFO RMProxy: Connecting to ResourceManager at sdc143.sefon.com/10.0.8.143:8030
+
+*/

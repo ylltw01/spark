@@ -168,7 +168,9 @@ private[spark] class Client(
 
     var appId: ApplicationId = null
     try {
+      // launcherBackend 通过 SparkLauncher 需要通信
       launcherBackend.connect()
+      // 初始化 yarnClient 并 start
       yarnClient.init(hadoopConf)
       yarnClient.start()
 
@@ -176,29 +178,37 @@ private[spark] class Client(
         .format(yarnClient.getYarnClusterMetrics.getNumNodeManagers))
 
       // Get a new application from our RM
+      // 通过 RM 创建一个新的 application
       val newApp = yarnClient.createApplication()
       val newAppResponse = newApp.getNewApplicationResponse()
+      // 获得 applicationId
       appId = newAppResponse.getApplicationId()
 
       // The app staging dir based on the STAGING_DIR configuration if configured
       // otherwise based on the users home directory.
+      // 计算提交 application 时的存储的目录地址，如果参数：spark.yarn.stagingDir 未设置，则使用根目录
       val appStagingBaseDir = sparkConf.get(STAGING_DIR)
         .map { new Path(_, UserGroupInformation.getCurrentUser.getShortUserName) }
         .getOrElse(FileSystem.get(hadoopConf).getHomeDirectory())
+      // 最终地址，${appStagingBaseDir}/.sparkStaging/${appId}
       stagingDirPath = new Path(appStagingBaseDir, getAppStagingDir(appId))
 
       new CallerContext("CLIENT", sparkConf.get(APP_CALLER_CONTEXT),
         Option(appId.toString)).setCurrentContext()
 
       // Verify whether the cluster has enough resources for our AM
+      // 校验集群是否有足够的内存
       verifyClusterResources(newAppResponse)
 
       // Set up the appropriate contexts to launch our AM
+      // 创建启动 ApplicationMaster context
       val containerContext = createContainerLaunchContext(newAppResponse)
+      // 创建 ApplicationSubmissionContext
       val appContext = createApplicationSubmissionContext(newApp, containerContext)
 
       // Finally, submit and monitor the application
       logInfo(s"Submitting application $appId to ResourceManager")
+      // 提交任务
       yarnClient.submitApplication(appContext)
       launcherBackend.setAppId(appId.toString)
       reportLauncherState(SparkAppHandle.State.SUBMITTED)
@@ -207,6 +217,7 @@ private[spark] class Client(
     } catch {
       case e: Throwable =>
         if (stagingDirPath != null) {
+          // 清理 hdfs 上的 staging 目录
           cleanupStagingDir()
         }
         throw e
@@ -215,6 +226,7 @@ private[spark] class Client(
 
   /**
    * Cleanup application staging directory.
+   *  清理 hdfs 上的 staging 目录
    */
   private def cleanupStagingDir(): Unit = {
     if (sparkConf.get(PRESERVE_STAGING_FILES)) {
@@ -251,32 +263,42 @@ private[spark] class Client(
       }
     logDebug(s"AM resources: $amResources")
     val appContext = newApp.getApplicationSubmissionContext
+    // 设置 yarn 中 ApplicationName 默认是 Spark
     appContext.setApplicationName(sparkConf.get("spark.app.name", "Spark"))
+    // 设置 yarn 中 Queue 的名字，即参数，spark.yarn.queue 默认为 default
     appContext.setQueue(sparkConf.get(QUEUE_NAME))
+    // 设置 ApplicationMaster
     appContext.setAMContainerSpec(containerContext)
+    // 设置 type 为 Spark
     appContext.setApplicationType("SPARK")
 
+    // 设置yarn tags spark.yarn.tags
     sparkConf.get(APPLICATION_TAGS).foreach { tags =>
       appContext.setApplicationTags(new java.util.HashSet[String](tags.asJava))
     }
+    // 设置启动 AM 失败重试最大次数 spark.yarn.maxAppAttempts
     sparkConf.get(MAX_APP_ATTEMPTS) match {
       case Some(v) => appContext.setMaxAppAttempts(v)
       case None => logDebug(s"${MAX_APP_ATTEMPTS.key} is not set. " +
           "Cluster's default value will be used.")
     }
 
+    // 设置 spark.yarn.am.attemptFailuresValidityInterval 间隔时间内失败的将不会被统计屌最大失败次数
     sparkConf.get(AM_ATTEMPT_FAILURE_VALIDITY_INTERVAL_MS).foreach { interval =>
       appContext.setAttemptFailuresValidityInterval(interval)
     }
 
     val capability = Records.newRecord(classOf[Resource])
+    // 设置 AM 内存
     capability.setMemory(amMemory + amMemoryOverhead)
+    // 设置 AM cpu
     capability.setVirtualCores(amCores)
     if (amResources.nonEmpty) {
       ResourceRequestHelper.setResourceRequests(amResources, capability)
     }
     logDebug(s"Created resource capability for AM request: $capability")
 
+    // 设置 yarn 节点标签
     sparkConf.get(AM_NODE_LABEL_EXPRESSION) match {
       case Some(expr) =>
         val amRequest = Records.newRecord(classOf[ResourceRequest])
@@ -304,6 +326,7 @@ private[spark] class Client(
             "does not support it", e)
       }
     }
+    // 在 client 模式下，是否使用使用非托管模式，将 ApplicationMaster 作为 client 的一部分启动，spark.yarn.unmanagedAM.enabled 默认为false，即独立启动
     appContext.setUnmanagedAM(isClientUnmanagedAMEnabled)
     appContext
   }
@@ -341,6 +364,7 @@ private[spark] class Client(
 
   /**
    * Fail fast if we have requested more resources per container than is available in the cluster.
+   * 校验是否有足够的内存
    */
   private def verifyClusterResources(newAppResponse: GetNewApplicationResponse): Unit = {
     val maxMem = newAppResponse.getMaximumResourceCapability().getMemory()
@@ -855,6 +879,7 @@ private[spark] class Client(
   /**
    * Set up a ContainerLaunchContext to launch our ApplicationMaster container.
    * This sets up the launch environment, java options, and the command for launching the AM.
+   * 设置启动 ApplicationMaster 的context，包含启动环境变了，java 参数，执行命令等
    */
   private def createContainerLaunchContext(newAppResponse: GetNewApplicationResponse)
     : ContainerLaunchContext = {
@@ -880,7 +905,7 @@ private[spark] class Client(
     // to append to the existing value of the variable
     var prefixEnv: Option[String] = None
 
-    // Add Xmx for AM memory
+    // Add Xmx for AM memory AM 最大内存
     javaOpts += "-Xmx" + amMemory + "m"
 
     val tmpDir = new Path(Environment.PWD.$$(), YarnConfiguration.DEFAULT_CONTAINER_TEMP_DIR)
@@ -893,6 +918,7 @@ private[spark] class Client(
     // Instead of using this, rely on cpusets by YARN to enforce "proper" Spark behavior in
     // multi-tenant environments. Not sure how default Java GC behaves if it is limited to subset
     // of cores on a node.
+    // CMS 垃圾回收器
     val useConcurrentAndIncrementalGC = launchEnv.get("SPARK_USE_CONC_INCR_GC").exists(_.toBoolean)
     if (useConcurrentAndIncrementalGC) {
       // In our expts, using (default) throughput collector has severe perf ramifications in
@@ -970,6 +996,7 @@ private[spark] class Client(
       } else {
         Nil
       }
+    // ApplicationMaster 的 class，yarn client：ExecutorLauncher， yarn cluster：ApplicationMaster
     val amClass =
       if (isClusterMode) {
         Utils.classForName("org.apache.spark.deploy.yarn.ApplicationMaster").getName
@@ -990,6 +1017,7 @@ private[spark] class Client(
         buildPath(Environment.PWD.$$(), LOCALIZED_CONF_DIR, DIST_CACHE_CONF_FILE))
 
     // Command for the ApplicationMaster
+    // 最终生成启动 ApplicationMaster 的命令
     val commands = prefixEnv ++
       Seq(Environment.JAVA_HOME.$$() + "/bin/java", "-server") ++
       javaOpts ++ amArgs ++
@@ -1170,6 +1198,7 @@ private[spark] class Client(
   def run(): Unit = {
     // 任务提交：提交任务至 yarn ResourceManager，并 yarn 集群中启动 ApplicationMaster
     this.appId = submitApplication()
+    // 集群模式下且 参数spark.yarn.submit.waitAppCompletion =true 默认为true
     if (!launcherBackend.isConnected() && fireAndForget) {
       val report = getApplicationReport(appId)
       val state = report.getYarnApplicationState
@@ -1179,6 +1208,7 @@ private[spark] class Client(
         throw new SparkException(s"Application $appId finished with status: $state")
       }
     } else {
+      // 监控 application 状态
       val YarnAppReport(appState, finalState, diags) = monitorApplication(appId)
       if (appState == YarnApplicationState.FAILED || finalState == FinalApplicationStatus.FAILED) {
         diags.foreach { err =>

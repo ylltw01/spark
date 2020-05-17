@@ -49,6 +49,7 @@ private[deploy] class JavaMainApplication(klass: Class[_]) extends SparkApplicat
       sys.props(k) = v
     }
 
+    // yarn client 模式下，直接执行用户提交参数中的 mainClass.main
     mainMethod.invoke(null, args)
   }
 

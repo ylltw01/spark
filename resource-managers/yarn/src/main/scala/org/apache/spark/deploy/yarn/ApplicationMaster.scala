@@ -919,6 +919,7 @@ object ApplicationMaster extends Logging {
 object ExecutorLauncher {
 
   def main(args: Array[String]): Unit = {
+    // 直接执行 ApplicationMaster.main
     ApplicationMaster.main(args)
   }
 

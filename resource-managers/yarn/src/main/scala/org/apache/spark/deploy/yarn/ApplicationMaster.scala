@@ -260,10 +260,10 @@ private[spark] class ApplicationMaster(
       }
 
       if (isClusterMode) {
-        // yarn cluster
+        // yarn cluster 模式下执行
         runDriver()
       } else {
-        // yarn client
+        // yarn client 模式下执行
         runExecutorLauncher()
       }
     } catch {
@@ -430,6 +430,9 @@ private[spark] class ApplicationMaster(
     registered = true
   }
 
+  /**
+    *
+    */
   private def createAllocator(
       driverRef: RpcEndpointRef,
       _sparkConf: SparkConf,
@@ -446,7 +449,9 @@ private[spark] class ApplicationMaster(
       }
     }
 
+    // 获取 appid
     val appId = appAttemptId.getApplicationId().toString()
+    // 获取 driverUrl
     val driverUrl = RpcEndpointAddress(driverRef.address.host, driverRef.address.port,
       CoarseGrainedSchedulerBackend.ENDPOINT_NAME).toString
     val localResources = prepareLocalResources(distCacheConf)
@@ -462,6 +467,7 @@ private[spark] class ApplicationMaster(
       dummyRunner.launchContextDebugInfo()
     }
 
+    // 创建 YarnAllocator 对象
     allocator = client.createAllocator(
       yarnConf,
       _sparkConf,
@@ -474,9 +480,12 @@ private[spark] class ApplicationMaster(
     // Initialize the AM endpoint *after* the allocator has been initialized. This ensures
     // that when the driver sends an initial executor request (e.g. after an AM restart),
     // the allocator is ready to service requests.
+    // 创建  AM RpcEndpoint
     rpcEnv.setupEndpoint("YarnAM", new AMEndpoint(rpcEnv, driverRef))
 
+    //
     allocator.allocateResources()
+    // 初始化 MetricsSystem
     val ms = MetricsSystem.createMetricsSystem(MetricsSystemInstances.APPLICATION_MASTER,
       sparkConf, securityMgr)
     val prefix = _sparkConf.get(YARN_METRICS_NAMESPACE).getOrElse(appId)
@@ -484,6 +493,7 @@ private[spark] class ApplicationMaster(
     // do not register static sources in this case as per SPARK-25277
     ms.start(false)
     metricsSystem = Some(ms)
+    // 启动监控申请container 以及container执行情况线程
     reporterThread = launchReporterThread()
   }
 
@@ -504,6 +514,7 @@ private[spark] class ApplicationMaster(
       val sc = ThreadUtils.awaitResult(sparkContextPromise.future,
         Duration(totalWaitTime, TimeUnit.MILLISECONDS))
       if (sc != null) {
+        // yarn cluster 可通过 SparkContext 获取到 RpcEnv
         val rpcEnv = sc.env.rpcEnv
 
         val userConf = sc.getConf
@@ -512,9 +523,12 @@ private[spark] class ApplicationMaster(
         // 注册 ApplicationMaster 至 ResourceManager
         registerAM(host, port, userConf, sc.ui.map(_.webUrl), appAttemptId)
 
+        // 创建 RpcEndpoint
         val driverRef = rpcEnv.setupEndpointRef(
           RpcAddress(host, port),
           YarnSchedulerBackend.ENDPOINT_NAME)
+
+        //
         createAllocator(driverRef, userConf, rpcEnv, appAttemptId, distCacheConf)
       } else {
         // Sanity check; should never happen in normal operation, since sc should only be null
@@ -542,20 +556,26 @@ private[spark] class ApplicationMaster(
   private def runExecutorLauncher(): Unit = {
     val hostname = Utils.localHostName
     val amCores = sparkConf.get(AM_CORES)
+    // 创建 RpcEnv，不像 yarn cluster 直接通过 SparkContext 拿到，yarn client 需要自己创建
     val rpcEnv = RpcEnv.create("sparkYarnAM", hostname, hostname, -1, sparkConf, securityMgr,
       amCores, true)
 
     // The client-mode AM doesn't listen for incoming connections, so report an invalid port.
+    // 注册 ApplicationMaster
     registerAM(hostname, -1, sparkConf, sparkConf.get(DRIVER_APP_UI_ADDRESS), appAttemptId)
 
     // The driver should be up and listening, so unlike cluster mode, just try to connect to it
     // with no waiting or retrying.
+
+    // yarn client 模式下，driverHost, driverPort 是由启动 AM 时候传递过来的
     val (driverHost, driverPort) = Utils.parseHostPort(args.userArgs(0))
+    // 创建 driver RpcEndpoint
     val driverRef = rpcEnv.setupEndpointRef(
       RpcAddress(driverHost, driverPort),
       YarnSchedulerBackend.ENDPOINT_NAME)
     addAmIpFilter(Some(driverRef),
       System.getenv(ApplicationConstants.APPLICATION_WEB_PROXY_BASE_ENV))
+    //
     createAllocator(driverRef, sparkConf, rpcEnv, appAttemptId, distCacheConf)
 
     // In client mode the actor will stop the reporter thread.

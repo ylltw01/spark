@@ -45,7 +45,7 @@ import org.apache.spark.scheduler.cluster.CoarseGrainedClusterMessages._
 import org.apache.spark.serializer.SerializerInstance
 import org.apache.spark.util.{ThreadUtils, Utils}
 
-// Executor container 入口类
+// Executor container 入口类； executor 与 Driver 端通信，生命周期 constructor -> onStart -> receive* -> onStop
 private[spark] class CoarseGrainedExecutorBackend(
     override val rpcEnv: RpcEnv,
     driverUrl: String,
@@ -70,6 +70,7 @@ private[spark] class CoarseGrainedExecutorBackend(
   override def onStart() {
     logInfo("Connecting to driver: " + driverUrl)
     val resources = parseOrFindResources(resourcesFile)
+    // 与 Driver 端通信，注册 Executor
     rpcEnv.asyncSetupEndpointRefByURI(driverUrl).flatMap { ref =>
       // This is a very fast action so we can use "ThreadUtils.sameThread"
       driver = Some(ref)
@@ -79,7 +80,7 @@ private[spark] class CoarseGrainedExecutorBackend(
       // This is a very fast action so we can use "ThreadUtils.sameThread"
       case Success(msg) =>
         // Always receive `true`. Just ignore it
-      case Failure(e) =>
+      case Failure(e) => // 注册失败，退出
         exitExecutor(1, s"Cannot register with driver: $driverUrl", e, notifyDriver = false)
     }(ThreadUtils.sameThread)
   }
@@ -123,7 +124,7 @@ private[spark] class CoarseGrainedExecutorBackend(
     }
   }
 
-  // visible for testing
+  // visible for testing 解析 Resource 文件
   def parseOrFindResources(resourcesFile: Option[String]): Map[String, ResourceInformation] = {
     // only parse the resources if a task requires them
     val taskResourceConfigs = env.conf.getAllWithPrefix(SPARK_TASK_RESOURCE_PREFIX)
@@ -187,8 +188,13 @@ private[spark] class CoarseGrainedExecutorBackend(
       .map(e => (e._1.substring(prefix.length).toUpperCase(Locale.ROOT), e._2))
   }
 
+  /**
+    * rpc 通信，处理接受到的消息
+    * @return
+    */
   override def receive: PartialFunction[Any, Unit] = {
     case RegisteredExecutor =>
+      // Executor 端通知 Driver 注册 Executor 后，Driver 会回复 RegisteredExecutor 消息，表示注册成功
       logInfo("Successfully registered with driver")
       try {
         executor = new Executor(executorId, hostname, env, userClassPath, isLocal = false)
@@ -198,9 +204,11 @@ private[spark] class CoarseGrainedExecutorBackend(
       }
 
     case RegisterExecutorFailed(message) =>
+      // Executor 端通知 Driver 注册 Executor 后，比如出现重复的 ExecutorId 或者 ExecutorId 已经在黑名单中，则回复失败
       exitExecutor(1, "Slave registration failed: " + message)
 
     case LaunchTask(data) =>
+      // Driver 端启动 task
       if (executor == null) {
         exitExecutor(1, "Received LaunchTask command but executor was null")
       } else {
@@ -210,6 +218,7 @@ private[spark] class CoarseGrainedExecutorBackend(
       }
 
     case KillTask(taskId, _, interruptThread, reason) =>
+      // Driver 端 kill task
       if (executor == null) {
         exitExecutor(1, "Received KillTask command but executor was null")
       } else {
@@ -217,6 +226,7 @@ private[spark] class CoarseGrainedExecutorBackend(
       }
 
     case StopExecutor =>
+      // 停止 Executor
       stopping.set(true)
       logInfo("Driver commanded a shutdown")
       // Cannot shutdown here because an ack may need to be sent back to the caller. So send
@@ -224,6 +234,7 @@ private[spark] class CoarseGrainedExecutorBackend(
       self.send(Shutdown)
 
     case Shutdown =>
+      // 立即停止 Executor
       stopping.set(true)
       new Thread("CoarseGrainedExecutorBackend-stop-executor") {
         override def run(): Unit = {
@@ -236,10 +247,14 @@ private[spark] class CoarseGrainedExecutorBackend(
       }.start()
 
     case UpdateDelegationTokens(tokenBytes) =>
+      // 更新 Tokens
       logInfo(s"Received tokens of ${tokenBytes.length} bytes")
       SparkHadoopUtil.get.addDelegationTokens(tokenBytes, env.conf)
   }
 
+  /**
+    * 当 remoteAddress 丢失连接
+    */
   override def onDisconnected(remoteAddress: RpcAddress): Unit = {
     if (stopping.get()) {
       logInfo(s"Driver from $remoteAddress disconnected during shutdown")
@@ -251,6 +266,9 @@ private[spark] class CoarseGrainedExecutorBackend(
     }
   }
 
+  /**
+    * 通知 Driver 端任务状态变更
+    */
   override def statusUpdate(taskId: Long, state: TaskState, data: ByteBuffer) {
     val msg = StatusUpdate(executorId, taskId, state, data)
     driver match {
@@ -263,6 +281,7 @@ private[spark] class CoarseGrainedExecutorBackend(
    * This function can be overloaded by other child classes to handle
    * executor exits differently. For e.g. when an executor goes down,
    * back-end may not want to take the parent process down.
+   * 退出 Executor
    */
   protected def exitExecutor(code: Int,
                              reason: String,

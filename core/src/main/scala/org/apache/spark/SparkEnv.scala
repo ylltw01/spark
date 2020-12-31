@@ -152,7 +152,7 @@ object SparkEnv extends Logging {
   }
 
   /**
-   * Create a SparkEnv for the driver.
+   * 创建 Driver 端的SparkEnv    Create a SparkEnv for the driver.
    */
   private[spark] def createDriverEnv(
       conf: SparkConf,
@@ -166,6 +166,7 @@ object SparkEnv extends Logging {
     val bindAddress = conf.get(DRIVER_BIND_ADDRESS)
     val advertiseAddress = conf.get(DRIVER_HOST_ADDRESS)
     val port = conf.get(DRIVER_PORT)
+    // spark.io.encryption.enabled 默认为 false
     val ioEncryptionKey = if (conf.get(IO_ENCRYPTION_ENABLED)) {
       Some(CryptoStreamUtils.createKey(conf))
     } else {
@@ -224,13 +225,14 @@ object SparkEnv extends Logging {
       ioEncryptionKey: Option[Array[Byte]],
       listenerBus: LiveListenerBus = null,
       mockOutputCommitCoordinator: Option[OutputCommitCoordinator] = None): SparkEnv = {
-
+    // 是否是 Driver 端，通过判断 executorId 是否等于 "driver"，Driver 端的executorId 是 SparkContext.DRIVER_IDENTIFIER
     val isDriver = executorId == SparkContext.DRIVER_IDENTIFIER
 
     // Listener bus is only used on the driver
     if (isDriver) {
       assert(listenerBus != null, "Attempted to create driver SparkEnv with null listener bus!")
     }
+    // 初始化 securityManager
     val authSecretFileConf = if (isDriver) AUTH_SECRET_FILE_DRIVER else AUTH_SECRET_FILE_EXECUTOR
     val securityManager = new SecurityManager(conf, ioEncryptionKey, authSecretFileConf)
     if (isDriver) {
@@ -243,8 +245,9 @@ object SparkEnv extends Logging {
           "wire.")
       }
     }
-
+    // Driver systemName 为 sparkDriver； executor systemName 为 sparkExecutor
     val systemName = if (isDriver) driverSystemName else executorSystemName
+    // 初始化 rpcEnv
     val rpcEnv = RpcEnv.create(systemName, bindAddress, advertiseAddress, port.getOrElse(-1), conf,
       securityManager, numUsableCores, !isDriver)
 
@@ -279,9 +282,10 @@ object SparkEnv extends Logging {
       instantiateClass[T](conf.get(propertyName))
     }
 
+    // 初始化，序列化类：spark.serializer = org.apache.spark.serializer.JavaSerializer（默认）
     val serializer = instantiateClassFromConf[Serializer](SERIALIZER)
     logDebug(s"Using serializer: ${serializer.getClass}")
-
+    // 初始化，序列化 Manager serializerManager
     val serializerManager = new SerializerManager(serializer, conf, ioEncryptionKey)
 
     val closureSerializer = new JavaSerializer(conf)

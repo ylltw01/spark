@@ -237,6 +237,7 @@ class SparkContext(config: SparkConf) extends Logging {
   private[spark] def eventLogDir: Option[URI] = _eventLogDir
   private[spark] def eventLogCodec: Option[String] = _eventLogCodec
 
+  // 是否是本地模式
   def isLocal: Boolean = Utils.isLocalMaster(_conf)
 
   /**
@@ -249,7 +250,7 @@ class SparkContext(config: SparkConf) extends Logging {
   // An asynchronous listener bus for Spark events
   private[spark] def listenerBus: LiveListenerBus = _listenerBus
 
-  // This function allows components created by SparkEnv to be mocked in unit tests:
+  //  初始化 SparkEnv  This function allows components created by SparkEnv to be mocked in unit tests:
   private[spark] def createSparkEnv(
       conf: SparkConf,
       isLocal: Boolean,
@@ -362,6 +363,7 @@ class SparkContext(config: SparkConf) extends Logging {
 
   try {
     _conf = config.clone()
+    // 参数校验
     _conf.validateSettings()
 
     if (!_conf.contains("spark.master")) {
@@ -370,7 +372,7 @@ class SparkContext(config: SparkConf) extends Logging {
     if (!_conf.contains("spark.app.name")) {
       throw new SparkException("An application name must be set in your configuration")
     }
-
+    // 初始化 DriverLogger
     _driverLogger = DriverLogger(_conf)
 
     // log out spark.app.name in the Spark driver logs
@@ -381,22 +383,23 @@ class SparkContext(config: SparkConf) extends Logging {
       throw new SparkException("Detected yarn cluster mode, but isn't running on a cluster. " +
         "Deployment to YARN is not supported directly by SparkContext. Please use spark-submit.")
     }
-
+    // 是否打印 sparkConf 配置信息
     if (_conf.getBoolean("spark.logConf", false)) {
       logInfo("Spark configuration:\n" + _conf.toDebugString)
     }
 
+    // 显式的设置 Spark driver 的 host 和 port
     // Set Spark driver host and port system properties. This explicitly sets the configuration
     // instead of relying on the default value of the config constant.
     _conf.set(DRIVER_HOST_ADDRESS, _conf.get(DRIVER_HOST_ADDRESS))
     _conf.setIfMissing(DRIVER_PORT, 0)
-
+    // 设置 Driver 的 spark.executor.id 为 driver
     _conf.set(EXECUTOR_ID, SparkContext.DRIVER_IDENTIFIER)
-
+    // 获取提交的 jars 和 files 文件
     _jars = Utils.getUserJars(_conf)
     _files = _conf.getOption(FILES.key).map(_.split(",")).map(_.filter(_.nonEmpty))
       .toSeq.flatten
-
+    // Spark eventLog
     _eventLogDir =
       if (isEventLogEnabled) {
         val unresolvedDir = conf.get(EVENT_LOG_DIR).stripSuffix("/")
@@ -404,7 +407,7 @@ class SparkContext(config: SparkConf) extends Logging {
       } else {
         None
       }
-
+    // Spark eventLog 压缩
     _eventLogCodec = {
       val compress = _conf.get(EVENT_LOG_COMPRESS)
       if (compress && isEventLogEnabled) {
@@ -413,16 +416,17 @@ class SparkContext(config: SparkConf) extends Logging {
         None
       }
     }
-
+    // 初始化Spark Listener 总线
     _listenerBus = new LiveListenerBus(_conf)
 
     // Initialize the app status store and listener before SparkEnv is created so that it gets
     // all events.
+    // 初始化 appStatusSource 和 listenerBus
     val appStatusSource = AppStatusSource.createSource(conf)
     _statusStore = AppStatusStore.createLiveStore(conf, appStatusSource)
     listenerBus.addToStatusQueue(_statusStore.listener.get)
 
-    // Create the Spark execution environment (cache, map output tracker, etc)
+    // 初始化 SparkEnv  Create the Spark execution environment (cache, map output tracker, etc)
     _env = createSparkEnv(_conf, isLocal, listenerBus)
     SparkEnv.set(_env)
 

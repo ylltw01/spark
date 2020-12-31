@@ -167,12 +167,14 @@ abstract class SparkStrategies extends QueryPlanner[SparkPlan] {
     private def muchSmaller(a: LogicalPlan, b: LogicalPlan): Boolean = {
       a.stats.sizeInBytes * 3 <= b.stats.sizeInBytes
     }
-
+    //  在使用到hashjoin的时候，比如（BroadcastHashJoinExec，ShuffledHashJoinExec）时候，
+    //  能进行处理右表的join type 是：innerLike（inner，cross），left out，left semi，left anti
     private def canBuildRight(joinType: JoinType): Boolean = joinType match {
       case _: InnerLike | LeftOuter | LeftSemi | LeftAnti | _: ExistenceJoin => true
       case _ => false
     }
-
+    //  在使用到hashjoin的时候，比如（BroadcastHashJoinExec，ShuffledHashJoinExec）时候，
+    //  能进行处理左表的join type 是：innerLike（inner，cross），right out
     private def canBuildLeft(joinType: JoinType): Boolean = joinType match {
       case _: InnerLike | RightOuter => true
       case _ => false
@@ -186,6 +188,7 @@ abstract class SparkStrategies extends QueryPlanner[SparkPlan] {
       if (wantToBuildLeft && wantToBuildRight) {
         // returns the smaller side base on its estimated physical size, if we want to build the
         // both sides.
+        // 如果join 左表和右表都可以build，则选择其中一个最小的
         Some(getSmallerSide(left, right))
       } else if (wantToBuildLeft) {
         Some(BuildLeft)
@@ -262,7 +265,9 @@ abstract class SparkStrategies extends QueryPlanner[SparkPlan] {
       //      other choice.
       case ExtractEquiJoinKeys(joinType, leftKeys, rightKeys, condition, left, right, hint) =>
         def createBroadcastHashJoin(buildLeft: Boolean, buildRight: Boolean) = {
+          // 根据join type 判断左表是否可以广播，并且左表的hits 为 broadcast
           val wantToBuildLeft = canBuildLeft(joinType) && buildLeft
+          // 根据join type 判断右表是否可以广播，并且右表的hits 为 broadcast
           val wantToBuildRight = canBuildRight(joinType) && buildRight
           getBuildSide(wantToBuildLeft, wantToBuildRight, left, right).map { buildSide =>
             Seq(joins.BroadcastHashJoinExec(
@@ -277,7 +282,9 @@ abstract class SparkStrategies extends QueryPlanner[SparkPlan] {
         }
 
         def createShuffleHashJoin(buildLeft: Boolean, buildRight: Boolean) = {
+          // 根据join type 判断左表是否可以Hash表，并且左表的hits 为 shuffle_hash
           val wantToBuildLeft = canBuildLeft(joinType) && buildLeft
+          // 根据join type 判断右表是否可以Hash表，并且右表的hits 为 shuffle_hash
           val wantToBuildRight = canBuildRight(joinType) && buildRight
           getBuildSide(wantToBuildLeft, wantToBuildRight, left, right).map { buildSide =>
             Seq(joins.ShuffledHashJoinExec(
@@ -290,8 +297,9 @@ abstract class SparkStrategies extends QueryPlanner[SparkPlan] {
               planLater(right)))
           }
         }
-
+        // hits 为 shuffle_merge
         def createSortMergeJoin() = {
+          // 左表字段是否能排序
           if (RowOrdering.isOrderable(leftKeys)) {
             Some(Seq(joins.SortMergeJoinExec(
               leftKeys, rightKeys, joinType, condition, planLater(left), planLater(right))))
@@ -301,6 +309,7 @@ abstract class SparkStrategies extends QueryPlanner[SparkPlan] {
         }
 
         def createCartesianProduct() = {
+          // inner join 或者 cross join
           if (joinType.isInstanceOf[InnerLike]) {
             Some(Seq(joins.CartesianProductExec(planLater(left), planLater(right), condition)))
           } else {
@@ -324,11 +333,12 @@ abstract class SparkStrategies extends QueryPlanner[SparkPlan] {
             .getOrElse {
               // This join could be very slow or OOM
               val buildSide = getSmallerSide(left, right)
+              // 最终解决方案使用 BroadcastNestedLoopJoinExec
               Seq(joins.BroadcastNestedLoopJoinExec(
                 planLater(left), planLater(right), buildSide, joinType, condition))
             }
         }
-
+// 优先 BroadcastHashJoin -> SortMergeJoin -> ShuffleHashJoin -> CartesianProduct -> BroadcastNestedLoopJoin
         createBroadcastHashJoin(hintToBroadcastLeft(hint), hintToBroadcastRight(hint))
           .orElse { if (hintToSortMergeJoin(hint)) createSortMergeJoin() else None }
           .orElse(createShuffleHashJoin(hintToShuffleHashLeft(hint), hintToShuffleHashRight(hint)))

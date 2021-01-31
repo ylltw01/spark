@@ -150,7 +150,7 @@ class Analyzer(
    * execute its rules in one pass.
    */
   val postHocResolutionRules: Seq[Rule[LogicalPlan]] = Nil
-
+  // Analyzer 所有 Rule
   lazy val batches: Seq[Batch] = Seq(
     Batch("Hints", fixedPoint,
       new ResolveHints.ResolveJoinStrategyHints(conf),
@@ -158,58 +158,58 @@ class Analyzer(
       ResolveHints.RemoveAllHints),
     Batch("Simple Sanity Check", Once,
       LookupFunctions),
-    Batch("Substitution", fixedPoint,
-      CTESubstitution,
-      WindowsSubstitution,
-      EliminateUnions,
-      new SubstituteUnresolvedOrdinals(conf)),
-    Batch("Resolution", fixedPoint,
-      ResolveTableValuedFunctions ::
-      ResolveRelations ::
-      ResolveReferences ::
-      ResolveCreateNamedStruct ::
-      ResolveDeserializer ::
-      ResolveNewInstance ::
-      ResolveUpCast ::
-      ResolveGroupingAnalytics ::
-      ResolvePivot ::
-      ResolveOrdinalInOrderByAndGroupBy ::
+    Batch("Substitution", fixedPoint, // 这个 Batch 对节点的作用类似于替换操作
+      CTESubstitution, // CTE 对应的是 Wi出语句，在 SQL 中主要用于子查询模块化，因此 CTESubstitution规则也就是用来处理With语旬的
+      WindowsSubstitution, // 对当前的逻辑算子树进行查找，当匹配到 WithWindowDefinition (windowDefinitions, child)表达式时，将其子节点中未解析的窗口函数表达式( Unresolved WindowExpression)转换成窗口函数表达式( WindowExpression
+      EliminateUnions, // 在 Union 算子节点只有一个子节点时，Union 操作实际上并没有起到作用，这种情况下需要消除该 Union 节点。该规则在遍历逻辑算子树过程中，匹配到 Union(children)且 children 的数目只有1个时，将 Union(children) 替换为 children.head节点。
+      new SubstituteUnresolvedOrdinals(conf)),// Spark从 2.0版本开始，在“OrderBy”和“GroupBy”语句 中开始支持用常数来表示列的下标 。 例如，假设某行数据包括 A、 B、 C3 列，那么 l 对 应A列， 2对应B列， 3对应C列;此时“GroupBy1,2” 等价于“GroupByA,B”语句。 而在 2.0版本之前，这种写法会直接被当作常数而忽略 。 新版本中这种特性通过配置参数“spark.sql.orderByOrdinal”和“spark.sql.groupByOrdinal”进行设置，默认都为 true，表示 该特性开启 。 SubstituteUnresolvedOrdinals这条规则的作用就是根据这两个配置参数将下 标替换成 UnresolvedOrdinal 表达式，以映射到对应的列
+  Batch("Resolution", fixedPoint,
+      ResolveTableValuedFunctions :: // 解析可以作为数据表的函数(例如 range)
+      ResolveRelations :: // 解析数据表
+      ResolveReferences ::  // 解析列
+      ResolveCreateNamedStruct :: // 解析结构体创建
+      ResolveDeserializer :: //解析反序列化操作类
+      ResolveNewInstance :: // 解析新的实例
+      ResolveUpCast :: // 解析类型转换
+      ResolveGroupingAnalytics :: // 解析多唯分析
+      ResolvePivot :: // 解析Pivot
+      ResolveOrdinalInOrderByAndGroupBy :: // 解析下标聚合
       ResolveAggAliasInGroupBy ::
-      ResolveMissingReferences ::
-      ExtractGenerator ::
-      ResolveGenerate ::
-      ResolveFunctions ::
-      ResolveAliases ::
-      ResolveSubquery ::
+      ResolveMissingReferences :: // 解析新的列
+      ExtractGenerator :: // 解析生成器
+      ResolveGenerate :: // 解析生成过程
+      ResolveFunctions :: // 解析函数
+      ResolveAliases :: // 解析别名
+      ResolveSubquery :: // 解析子查询
       ResolveSubqueryColumnAliases ::
-      ResolveWindowOrder ::
-      ResolveWindowFrame ::
-      ResolveNaturalAndUsingJoin ::
+      ResolveWindowOrder :: // 解析窗口函数排序
+      ResolveWindowFrame :: // 解析窗口函数
+      ResolveNaturalAndUsingJoin :: // 解析自然 Join
       ResolveOutputRelation ::
-      ExtractWindowExpressions ::
-      GlobalAggregates ::
-      ResolveAggregateFunctions ::
-      TimeWindowing ::
-      ResolveInlineTables(conf) ::
+      ExtractWindowExpressions :: // 提取窗口函数表达式
+      GlobalAggregates :: // 解析全局聚合
+      ResolveAggregateFunctions :: // 解析聚合函数
+      TimeWindowing :: // 解析时间窗口
+      ResolveInlineTables(conf) :: // 解析内联表
       ResolveHigherOrderFunctions(catalog) ::
       ResolveLambdaVariables(conf) ::
       ResolveTimeZone(conf) ::
       ResolveRandomSeed ::
-      TypeCoercion.typeCoercionRules(conf) ++
-      extendedResolutionRules : _*),
+      TypeCoercion.typeCoercionRules(conf) ++ // 解析强制类型转换
+      extendedResolutionRules : _*),// 扩展规则
     Batch("Post-Hoc Resolution", Once, postHocResolutionRules: _*),
     Batch("View", Once,
       AliasViewChild(conf)),
     Batch("Nondeterministic", Once,
-      PullOutNondeterministic),
+      PullOutNondeterministic), // 主要用来将LogicalPlan中非Project 或非 Filter 算子的 nondeterministic (不确定的)表达式提取出来，然后将这些表达式放在内层的 Project 算子中或最终的 Project 算子中
     Batch("UDF", Once,
-      HandleNullInputsForUDF),
+      HandleNullInputsForUDF), // 用来处理输入数据为 Null 的情形，其主要思想是从上至下进行表达式的遍历(transformExpressionsUp), 当匹配到ScalaUDF类型的表达式时，会创建If表达式来进行Null值的检查
     Batch("UpdateNullability", Once,
       UpdateAttributeNullability),
     Batch("Subquery", Once,
       UpdateOuterReferences),
     Batch("Cleanup", fixedPoint,
-      CleanupAliases)
+      CleanupAliases) // 用来删除 LogicalPlan中无用的别名信息。一般情况下，逻辑算子树中仅Project、Aggregate 或 Window 算子的最高一层表达式(分别对应projectlist、aggregateexpressions和 windowexpressions)才需要别名。 CleanupAliases通过trimAliases方法对表达式执行中的别名进行删除
   )
 
   /**

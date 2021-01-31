@@ -30,7 +30,7 @@ import org.apache.spark.sql.catalyst.util.StringUtils
 /**
  * A thread-safe manager for global temporary views, providing atomic operations to manage them,
  * e.g. create, update, remove, etc.
- *
+ * GlobalTempViewManager是一个线程安全的类，提供了对全局视图的原子操作，包括创建、更新、删除和重命名等。 在 GlobalTempViewManager 内部实现中，主要功能依赖一个mutable类型的 HashMap来对视图名和数据源进行映射，其中的 key是视图名的字符串， value是视图所对应的 LogicalPlan (一般在创建该视图时生成)。 需要注意的是， GlobalTempViewManager对视图名是大小写敏感的
  * Note that, the view name is always case-sensitive here, callers are responsible to format the
  * view name w.r.t. case-sensitive config.
  *

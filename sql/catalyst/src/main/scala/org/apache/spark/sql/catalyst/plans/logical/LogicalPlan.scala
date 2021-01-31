@@ -33,7 +33,7 @@ abstract class LogicalPlan
   with QueryPlanConstraints
   with Logging {
 
-  /** Returns true if this subtree has data from a streaming data source. */
+  /** Returns true if this subtree has data from a streaming data source. 表示当前逻辑算子树中是否包含流式 数据源 */
   def isStreaming: Boolean = children.exists(_.isStreaming)
 
   override def verboseStringWithSuffix(maxFields: Int): String = {
@@ -42,7 +42,7 @@ abstract class LogicalPlan
 
   /**
    * Returns the maximum number of rows that this plan may compute.
-   *
+   * 记录了当前节点可能计算的最大行数， 一般常用于 Limit算子
    * Any operator that a Limit can be pushed passed should override this function (e.g., Union).
    * Any operator that can push through a Limit should override this function (e.g., Project).
    */
@@ -58,10 +58,10 @@ abstract class LogicalPlan
    * and false if it still contains any unresolved placeholders. Implementations of LogicalPlan
    * can override this (e.g.
    * [[org.apache.spark.sql.catalyst.analysis.UnresolvedRelation UnresolvedRelation]]
-   * should return `false`).
+   * should return `false`). 用来标记该 Logica!Plan 是否为经过 了解析的布尔类型值;
    */
   lazy val resolved: Boolean = expressions.forall(_.resolved) && childrenResolved
-
+  // 重载了 QueryPlan 中的实现，如果该逻辑算子树节点未经过解析，则输出的字符串前缀会加上单引号(‘)
   override protected def statePrefix = if (!resolved) "'" else super.statePrefix
 
   /**
@@ -122,7 +122,7 @@ abstract class LogicalPlan
   }
 
   /**
-   * Refreshes (or invalidates) any metadata/data cached in the plan recursively.
+   * 递归地刷新当前计划中的元数据等信息 Refreshes (or invalidates) any metadata/data cached in the plan recursively.
    */
   def refresh(): Unit = children.foreach(_.refresh())
 
@@ -147,7 +147,7 @@ abstract class LogicalPlan
 }
 
 /**
- * A logical plan node with no children.
+ * A logical plan node with no children. 叶子节点，不存在子节点
  */
 abstract class LeafNode extends LogicalPlan {
   override final def children: Seq[LogicalPlan] = Nil
@@ -158,7 +158,7 @@ abstract class LeafNode extends LogicalPlan {
 }
 
 /**
- * A logical plan node with single child.
+ * A logical plan node with single child. 一元节点，仅包含一个子节点
  */
 abstract class UnaryNode extends LogicalPlan {
   def child: LogicalPlan
@@ -191,7 +191,7 @@ abstract class UnaryNode extends LogicalPlan {
 }
 
 /**
- * A logical plan node with a left and right child.
+ * A logical plan node with a left and right child. 二元节点，包含两个节点那
  */
 abstract class BinaryNode extends LogicalPlan {
   def left: LogicalPlan

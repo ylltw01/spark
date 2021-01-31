@@ -56,7 +56,7 @@ class QueryExecution(
       UnsupportedOperationChecker.checkForBatch(analyzed)
     }
   }
-
+  // Analyzed LogicalPlan 入口： analyzer 将 Unresolved LogicalPlan 通过 rule 转换为 Analyzed LogicalPlan
   lazy val analyzed: LogicalPlan = tracker.measurePhase(QueryPlanningTracker.ANALYSIS) {
     SparkSession.setActiveSession(sparkSession)
     sparkSession.sessionState.analyzer.executeAndCheck(logical, tracker)
@@ -67,7 +67,7 @@ class QueryExecution(
     assertSupported()
     sparkSession.sharedState.cacheManager.useCachedData(analyzed)
   }
-
+  // optimized LogicalPlan 入口： Analyzed LogicalPlan -> optimized LogicalPlan
   lazy val optimizedPlan: LogicalPlan = tracker.measurePhase(QueryPlanningTracker.OPTIMIZATION) {
     sparkSession.sessionState.optimizer.executeAndTrack(withCachedData, tracker)
   }

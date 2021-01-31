@@ -54,13 +54,13 @@ object SessionCatalog {
  * This class must be thread-safe.
  */
 class SessionCatalog(
-    externalCatalogBuilder: () => ExternalCatalog,
-    globalTempViewManagerBuilder: () => GlobalTempViewManager,
-    functionRegistry: FunctionRegistry,
+    externalCatalogBuilder: () => ExternalCatalog, // 外部系统 Catalog，用来管理数据库( Databases)、数据表 (Tables)、数 据分区( Partitions)和函数( Functions)的接口
+    globalTempViewManagerBuilder: () => GlobalTempViewManager, // 全局的临时视图管理,对应 DataFrame 中常用的createGlobalTempView方法，进行跨 Session 的视图管理
+    functionRegistry: FunctionRegistry, // 函数注册接口，用来实现对函数的注册 (Register)、查找(Lookup)和 删除( Drop) 等功能
     conf: SQLConf,
     hadoopConf: Configuration,
     parser: ParserInterface,
-    functionResourceLoader: FunctionResourceLoader) extends Logging {
+    functionResourceLoader: FunctionResourceLoader) extends Logging { // 函数资源加载器，在SparkSQL 中除内置实现的各种函数外，还支持用户自定义的函数和 Hive 中的各种函数。这些函数往往通过 Jar包或文件类型提供， FunctionResourceLoader 主要就是用来加载这两种类型的 资源以提供函数的调用
   import SessionCatalog._
   import CatalogTypes.TablePartitionSpec
 

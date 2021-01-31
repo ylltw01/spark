@@ -31,35 +31,35 @@ abstract class QueryPlan[PlanType <: QueryPlan[PlanType]] extends TreeNode[PlanT
    * See [[SQLConf.get]] for more information.
    */
   def conf: SQLConf = SQLConf.get
-
+  // 节点的输出
   def output: Seq[Attribute]
 
   /**
-   * Returns the set of attributes that are output by this node.
+   * Returns the set of attributes that are output by this node. 输出封装为set
    */
   def outputSet: AttributeSet = AttributeSet(output)
 
   /**
    * All Attributes that appear in expressions from this operator.  Note that this set does not
-   * include attributes that are implicitly referenced by being passed through to the output tuple.
+   * include attributes that are implicitly referenced by being passed through to the output tuple. 节点表达式中所涉及的所有属性集合
    */
   def references: AttributeSet = AttributeSet.fromAttributeSets(expressions.map(_.references))
 
   /**
-   * The set of all attributes that are input to this operator by its children.
+   * The set of all attributes that are input to this operator by its children. 节点的输入=所有子节点的输出
    */
   def inputSet: AttributeSet =
     AttributeSet(children.flatMap(_.asInstanceOf[QueryPlan[PlanType]].output))
 
   /**
-   * The set of all attributes that are produced by this node.
+   * The set of all attributes that are produced by this node. 该节点所产生的属性
    */
   def producedAttributes: AttributeSet = AttributeSet.empty
 
   /**
    * Attributes that are referenced by expressions but not provided by this node's children.
    * Subclasses should override this method if they produce attributes internally as it is used by
-   * assertions designed to prevent the construction of invalid plans.
+   * assertions designed to prevent the construction of invalid plans. 该节点表达式中涉及的但是其子节点输出中并不包含的属性 。
    */
   def missingInput: AttributeSet = references -- inputSet -- producedAttributes
 
@@ -139,7 +139,7 @@ abstract class QueryPlan[PlanType <: QueryPlan[PlanType]] extends TreeNode[PlanT
     }.asInstanceOf[this.type]
   }
 
-  /** Returns all of the expressions present in this query plan operator. */
+  /** Returns all of the expressions present in this query plan operator. 该节点中的所有表达式列表 */
   final def expressions: Seq[Expression] = {
     // Recursively find all expressions from a traversable.
     def seqToExpressions(seq: Iterable[Any]): Iterable[Expression] = seq.flatMap {
@@ -155,7 +155,7 @@ abstract class QueryPlan[PlanType <: QueryPlan[PlanType]] extends TreeNode[PlanT
       case other => Nil
     }.toSeq
   }
-
+  // 对应 output输出属性的 schema信息
   lazy val schema: StructType = StructType.fromAttributes(output)
 
   /** Returns the output schema in the tree format. */
@@ -168,7 +168,7 @@ abstract class QueryPlan[PlanType <: QueryPlan[PlanType]] extends TreeNode[PlanT
 
   /**
    * A prefix string used when printing the plan.
-   *
+   * 表示该执行计划状态的前缀字符，在 QueryPlan 的默认实现中，如果该计划不可用 (invalid)，则前缀会用感叹号(“!”) 标记
    * We use "!" to indicate an invalid plan, and "'" to indicate an unresolved plan.
    */
   protected def statePrefix = if (missingInput.nonEmpty && children.nonEmpty) "!" else ""
@@ -178,7 +178,7 @@ abstract class QueryPlan[PlanType <: QueryPlan[PlanType]] extends TreeNode[PlanT
   override def verboseString(maxFields: Int): String = simpleString(maxFields)
 
   /**
-   * All the subqueries of current plan.
+   * All the subqueries of current plan. 默认实现该 QueryPlan 节点中包含的所有子查询
    */
   def subqueries: Seq[PlanType] = {
     expressions.flatMap(_.collect {
@@ -204,7 +204,7 @@ abstract class QueryPlan[PlanType <: QueryPlan[PlanType]] extends TreeNode[PlanT
    *
    * Plans where `this.canonicalized == other.canonicalized` will always evaluate to the same
    * result.
-   *
+   * 规范化
    * Plan nodes that require special canonicalization should override [[doCanonicalize()]].
    * They should remove expressions cosmetic variations themselves.
    */
@@ -252,7 +252,7 @@ abstract class QueryPlan[PlanType <: QueryPlan[PlanType]] extends TreeNode[PlanT
    * the same.  Such behavior will not affect correctness, only the application of performance
    * enhancements like caching.  However, it is not acceptable to return true if the results could
    * possibly be different.
-   *
+   * 利用 canonicalized 来判断两个 QueryPlan 的输出数据是否相同
    * This function performs a modified version of equality that is tolerant of cosmetic
    * differences like attribute naming and or expression id differences.
    */
@@ -265,7 +265,7 @@ abstract class QueryPlan[PlanType <: QueryPlan[PlanType]] extends TreeNode[PlanT
   final def semanticHash(): Int = canonicalized.hashCode()
 
   /**
-   * All the attributes that are used for this plan.
+   * All the attributes that are used for this plan. 记录节点所涉及的所有属性( attributes)列表
    */
   lazy val allAttributes: AttributeSeq = children.flatMap(_.output)
 }

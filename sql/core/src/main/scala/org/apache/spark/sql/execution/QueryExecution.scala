@@ -37,7 +37,7 @@ import org.apache.spark.util.Utils
 /**
  * The primary workflow for executing relational queries using Spark.  Designed to allow easy
  * access to the intermediate phases of query execution for developers.
- *
+ * 查询执行类
  * While this is not a public class, we should avoid changing the function names for the sake of
  * changing them, because a lot of developers use the feature for debugging.
  */
@@ -71,7 +71,7 @@ class QueryExecution(
   lazy val optimizedPlan: LogicalPlan = tracker.measurePhase(QueryPlanningTracker.OPTIMIZATION) {
     sparkSession.sessionState.optimizer.executeAndTrack(withCachedData, tracker)
   }
-
+  //  生成物理执行计划入口 optimized LogicalPlan -> PhysicalPlan
   lazy val sparkPlan: SparkPlan = tracker.measurePhase(QueryPlanningTracker.PLANNING) {
     SparkSession.setActiveSession(sparkSession)
     // TODO: We use next(), i.e. take the first plan returned by the planner, here for now,
@@ -80,7 +80,7 @@ class QueryExecution(
   }
 
   // executedPlan should not be used to initialize any SparkPlan. It should be
-  // only used for execution.
+  // 执行前准备，输入为PhysicalPlan   only used for execution.
   lazy val executedPlan: SparkPlan = tracker.measurePhase(QueryPlanningTracker.PLANNING) {
     prepareForExecution(sparkPlan)
   }
@@ -99,7 +99,7 @@ class QueryExecution(
 
   /**
    * Prepares a planned [[SparkPlan]] for execution by inserting shuffle operations and internal
-   * row format conversions as needed.
+   * 执行前的最后一次规则优化 row format conversions as needed.
    */
   protected def prepareForExecution(plan: SparkPlan): SparkPlan = {
     preparations.foldLeft(plan) { case (sp, rule) => rule.apply(sp) }
@@ -107,11 +107,11 @@ class QueryExecution(
 
   /** A sequence of rules that will be applied in order to the physical plan before execution. */
   protected def preparations: Seq[Rule[SparkPlan]] = Seq(
-    PlanSubqueries(sparkSession),
-    EnsureRequirements(sparkSession.sessionState.conf),
-    CollapseCodegenStages(sparkSession.sessionState.conf),
-    ReuseExchange(sparkSession.sessionState.conf),
-    ReuseSubquery(sparkSession.sessionState.conf))
+    PlanSubqueries(sparkSession), // 特殊子查询物理计划处理
+    EnsureRequirements(sparkSession.sessionState.conf), // 确保执行计划分区与排序正确性
+    CollapseCodegenStages(sparkSession.sessionState.conf), // 代码生成相关
+    ReuseExchange(sparkSession.sessionState.conf), // exchange 节点重用
+    ReuseSubquery(sparkSession.sessionState.conf)) // 子查询重用
 
   def simpleString: String = withRedaction {
     val concat = new PlanStringConcat()

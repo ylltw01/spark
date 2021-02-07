@@ -51,7 +51,7 @@ case class SortExec(
   // sort performed is local within a given partition so will retain
   // child operator's partitioning
   override def outputPartitioning: Partitioning = child.outputPartitioning
-
+  // 如果需要全局有序，则要求子节点是 OrderedDistribution ，即分区需要是 RangePartitioning，否则不需要
   override def requiredChildDistribution: Seq[Distribution] =
     if (global) OrderedDistribution(sortOrder) :: Nil else UnspecifiedDistribution :: Nil
 

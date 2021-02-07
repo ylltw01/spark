@@ -33,7 +33,7 @@ import org.apache.spark.util.Utils
 
 /**
  * Abstract class all optimizers should inherit of, contains the standard batches (extending
- * Optimizers can override this.
+ * Optimizer 逻辑执行计划优化基类    Optimizers can override this.
  */
 abstract class Optimizer(sessionCatalog: SessionCatalog)
   extends RuleExecutor[LogicalPlan] {

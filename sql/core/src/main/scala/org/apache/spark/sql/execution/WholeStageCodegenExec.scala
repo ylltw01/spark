@@ -625,7 +625,7 @@ object WholeStageCodegenId {
  *  doConsume()  <--------  consume()
  *
  * SparkPlan A should override `doProduce()` and `doConsume()`.
- *
+ * // 全阶段代码生成
  * `doCodeGen()` will create a `CodeGenContext`, which will hold a list of variables for input,
  * used to generated code for [[BoundReference]].
  */

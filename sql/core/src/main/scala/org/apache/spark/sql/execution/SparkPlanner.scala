@@ -24,7 +24,7 @@ import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.execution.datasources.{DataSourceStrategy, FileSourceStrategy}
 import org.apache.spark.sql.execution.datasources.v2.DataSourceV2Strategy
 import org.apache.spark.sql.internal.SQLConf
-
+// optimized 执行计划 -> 物理执行计划
 class SparkPlanner(
     val sparkContext: SparkContext,
     val conf: SQLConf,
@@ -38,14 +38,14 @@ class SparkPlanner(
       extraPlanningStrategies ++ (
       PythonEvals ::
       DataSourceV2Strategy ::
-      FileSourceStrategy ::
-      DataSourceStrategy(conf) ::
-      SpecialLimits ::
-      Aggregation ::
+      FileSourceStrategy :: // 数据文件扫描计划
+      DataSourceStrategy(conf) :: // 各种数据源相关的计划
+      SpecialLimits :: // 特殊 limit操作的执行计划
+      Aggregation :: // 聚合算子相关的执行计划
       Window ::
-      JoinSelection ::
-      InMemoryScans ::
-      BasicOperators :: Nil)
+      JoinSelection :: // join 操作相关的执行计划
+      InMemoryScans :: // 内存数据表扫描计划
+      BasicOperators :: Nil) // 对基本算子生成的执行计划
 
   /**
    * Override to add extra planning strategies to the planner. These strategies are tried after

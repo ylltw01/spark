@@ -39,7 +39,7 @@ import org.apache.spark.sql.sources.{BaseRelation, Filter}
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.util.Utils
 import org.apache.spark.util.collection.BitSet
-
+// 数据源
 trait DataSourceScanExec extends LeafExecNode with CodegenSupport {
   val relation: BaseRelation
   val tableIdentifier: Option[TableIdentifier]
@@ -50,7 +50,7 @@ trait DataSourceScanExec extends LeafExecNode with CodegenSupport {
     s"Scan $relation ${tableIdentifier.map(_.unquotedString).getOrElse("")}"
   }
 
-  // Metadata that describes more details of this scan.
+  // Metadata that describes more details of this scan. metadata 元数据
   protected def metadata: Map[String, String]
 
   override def simpleString(maxFields: Int): String = {
@@ -124,7 +124,7 @@ case class RowDataSourceScanExec(
 
 /**
  * Physical plan node for scanning data from HadoopFsRelations.
- *
+ * // 扫描 hadoop 文件系统文件
  * @param relation The file-based relation to scan.
  * @param output Output attributes of the scan, including data attributes and partition attributes.
  * @param requiredSchema Required schema of the underlying relation, excluding partition columns.

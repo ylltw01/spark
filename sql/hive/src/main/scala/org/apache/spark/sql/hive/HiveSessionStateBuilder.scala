@@ -30,7 +30,7 @@ import org.apache.spark.sql.hive.client.HiveClient
 import org.apache.spark.sql.internal.{BaseSessionStateBuilder, SessionResourceLoader, SessionState}
 
 /**
- * Builder that produces a Hive-aware `SessionState`.
+ * enableHive 下的sessionState Builder that produces a Hive-aware `SessionState`.
  */
 @Experimental
 @Unstable
@@ -65,7 +65,7 @@ class HiveSessionStateBuilder(session: SparkSession, parentState: Option[Session
   }
 
   /**
-   * A logical query plan `Analyzer` with rules specific to Hive.
+   *  enableHive 情况下的 Analyzer 规则； A logical query plan `Analyzer` with rules specific to Hive.
    */
   override protected def analyzer: Analyzer = new Analyzer(catalog, conf) {
     override val extendedResolutionRules: Seq[Rule[LogicalPlan]] =
@@ -94,7 +94,7 @@ class HiveSessionStateBuilder(session: SparkSession, parentState: Option[Session
   }
 
   /**
-   * Planner that takes into account Hive-specific strategies.
+   * enableHive 情况下的 物理执行计划 规则  Planner that takes into account Hive-specific strategies.
    */
   override protected def planner: SparkPlanner = {
     new SparkPlanner(session.sparkContext, conf, experimentalMethods) with HiveStrategies {

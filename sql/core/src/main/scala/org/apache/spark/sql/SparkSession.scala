@@ -145,7 +145,7 @@ class SparkSession private(
    * If `parentSessionState` is not null, the `SessionState` will be a copy of the parent.
    *
    * This is internal to Spark and there is no guarantee on interface stability.
-   *
+   * session 状态，包含 SQL configurations， 临时表，注册的函数等
    * @since 2.2.0
    */
   @Unstable
@@ -155,7 +155,7 @@ class SparkSession private(
       .map(_.clone(this))
       .getOrElse {
         val state = SparkSession.instantiateSessionState(
-          SparkSession.sessionStateClassName(sparkContext.conf),
+          SparkSession.sessionStateClassName(sparkContext.conf), // spark.sql.catalogImplementation  HiveSessionStateBuilder 或者 (默认值)SessionStateBuilder
           self)
         initialSessionOptions.foreach { case (k, v) => state.conf.setConfString(k, v) }
         state
@@ -871,7 +871,7 @@ object SparkSession extends Logging {
      */
     def enableHiveSupport(): Builder = synchronized {
       if (hiveClassesArePresent) {
-        config(CATALOG_IMPLEMENTATION.key, "hive")
+        config(CATALOG_IMPLEMENTATION.key, "hive") // 设置 catalogImplementation 为 hive，使用 HiveSessionStateBuilder
       } else {
         throw new IllegalArgumentException(
           "Unable to instantiate SparkSession with Hive support because " +
@@ -1103,7 +1103,7 @@ object SparkSession extends Logging {
     try {
       // invoke `new [Hive]SessionStateBuilder(SparkSession, Option[SessionState])`
       val clazz = Utils.classForName(className)
-      val ctor = clazz.getConstructors.head
+      val ctor = clazz.getConstructors.head // 创建 BaseSessionStateBuilder 或者 HiveSessionStateBuilder
       ctor.newInstance(sparkSession, None).asInstanceOf[BaseSessionStateBuilder].build()
     } catch {
       case NonFatal(e) =>

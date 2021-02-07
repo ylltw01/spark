@@ -161,7 +161,7 @@ abstract class BaseSessionStateBuilder(
 
   /**
    * Logical query plan analyzer for resolving unresolved attributes and relations.
-   *
+   * 默认情况下的 Analyzer 规则
    * Note: this depends on the `conf` and `catalog` fields.
    */
   protected def analyzer: Analyzer = new Analyzer(catalog, conf) {
@@ -241,7 +241,7 @@ abstract class BaseSessionStateBuilder(
 
   /**
    * Planner that converts optimized logical plans to physical plans.
-   *
+   * 将优化完成的逻辑执行计划，转换为物理执行计划 SparkPlanner
    * Note: this depends on the `conf` and `experimentalMethods` fields.
    */
   protected def planner: SparkPlanner = {
@@ -262,7 +262,7 @@ abstract class BaseSessionStateBuilder(
   }
 
   /**
-   * Create a query execution object.
+   * 创建查询执行对象     Create a query execution object.
    */
   protected def createQueryExecution: LogicalPlan => QueryExecution = { plan =>
     new QueryExecution(session, plan)
@@ -303,10 +303,10 @@ abstract class BaseSessionStateBuilder(
       functionRegistry,
       udfRegistration,
       () => catalog,
-      sqlParser,
-      () => analyzer,
-      () => optimizer,
-      planner,
+      sqlParser, // sql 解析
+      () => analyzer, // Analyzer
+      () => optimizer, // Optimizer
+      planner, // SparkPlanner 物理执行计划
       streamingQueryManager,
       listenerManager,
       () => resourceLoader,

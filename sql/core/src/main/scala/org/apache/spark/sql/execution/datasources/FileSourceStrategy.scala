@@ -48,7 +48,7 @@ import org.apache.spark.util.collection.BitSet
  *   - Sort the files by decreasing file size.
  *   - Assign the ordered files to buckets using the following algorithm.  If the current partition
  *     is under the threshold with the addition of the next file, add it.  If not, open a new bucket
- *     and add it.  Proceed to the next file.
+ *  数据文件扫描计划，能够匹配 PhysicalOperation 的节点集合加上 LogicalRelation 节点 。 在这种情况下，该策略会根 据数据文件信息构建 FileSourceScanExec这样的物理执行计划，并在此物理执行计划后添加过 滤( FilterExec)与列剪裁( ProjectExec)物理计划 。   and add it.  Proceed to the next file.
  */
 object FileSourceStrategy extends Strategy with Logging {
 

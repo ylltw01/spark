@@ -40,7 +40,7 @@ import org.apache.spark.sql.types.DataType
 import org.apache.spark.util.ThreadUtils
 
 /**
- * The base class for physical operators.
+ * The base class for physical operators. 物理执行计划
  *
  * The naming convention is that physical operators end with "Exec" suffix, e.g. [[ProjectExec]].
  */
@@ -74,7 +74,7 @@ abstract class SparkPlan extends QueryPlan[SparkPlan] with Logging with Serializ
   }
 
   /**
-   * @return All metrics containing metrics of this SparkPlan.
+   * @return All metrics containing metrics of this SparkPlan. Metrics 能够记录各种信息，为应用的诊断和优化提供基础
    */
   def metrics: Map[String, SQLMetric] = Map.empty
 
@@ -91,14 +91,14 @@ abstract class SparkPlan extends QueryPlan[SparkPlan] with Logging with Serializ
   def longMetric(name: String): SQLMetric = metrics(name)
 
   // TODO: Move to `DistributedPlan`
-  /** Specifies how data is partitioned across different nodes in the cluster. */
+  /** Specifies how data is partitioned across different nodes in the cluster.  定义了当前 SparkPlan 对输出数据( RDD)的分区操作， */
   def outputPartitioning: Partitioning = UnknownPartitioning(0) // TODO: WRONG WIDTH!
 
   /**
    * Specifies the data distribution requirements of all the children for this operator. By default
    * it's [[UnspecifiedDistribution]] for each child, which means each child can have any
    * distribution.
-   *
+   * // 当前 SparkPlan 所需的数据分布
    * If an operator overwrites this method, and specifies distribution requirements(excluding
    * [[UnspecifiedDistribution]] and [[BroadcastDistribution]]) for more than one child, Spark
    * guarantees that the outputs of these children will have same number of partitions, so that the
@@ -112,10 +112,10 @@ abstract class SparkPlan extends QueryPlan[SparkPlan] with Logging with Serializ
   def requiredChildDistribution: Seq[Distribution] =
     Seq.fill(children.size)(UnspecifiedDistribution)
 
-  /** Specifies how data is ordered in each partition. */
+  /** Specifies how data is ordered in each partition. 定义了每个数据分区的排序方式 */
   def outputOrdering: Seq[SortOrder] = Nil
 
-  /** Specifies sort order for each partition requirements on the input data for this operator. */
+  /** // 当前 SparkPlan 所需的数据排序方式 Specifies sort order for each partition requirements on the input data for this operator. */
   def requiredChildOrdering: Seq[Seq[SortOrder]] = Seq.fill(children.size)(Nil)
 
   /**
@@ -422,7 +422,7 @@ abstract class SparkPlan extends QueryPlan[SparkPlan] with Logging with Serializ
     newOrdering(order, Seq.empty)
   }
 }
-
+// 叶子节点
 trait LeafExecNode extends SparkPlan {
   override final def children: Seq[SparkPlan] = Nil
   override def producedAttributes: AttributeSet = outputSet
@@ -434,13 +434,13 @@ object UnaryExecNode {
     case _ => None
   }
 }
-
+// 一个节点
 trait UnaryExecNode extends SparkPlan {
   def child: SparkPlan
 
   override final def children: Seq[SparkPlan] = child :: Nil
 }
-
+// 两个节点
 trait BinaryExecNode extends SparkPlan {
   def left: SparkPlan
   def right: SparkPlan

@@ -23,27 +23,27 @@ import org.apache.spark.sql.types.{DataType, IntegerType}
 /**
  * Specifies how tuples that share common expressions will be distributed when a query is executed
  * in parallel on many machines.
- *
+ * // 描述 rdd 数据的分布方式
  * Distribution here refers to inter-node partitioning of data. That is, it describes how tuples
  * are partitioned across physical machines in a cluster. Knowing this property allows some
  * operators (e.g., Aggregate) to perform partition local operations instead of global ones.
  */
 sealed trait Distribution {
   /**
-   * The required number of partitions for this distribution. If it's None, then any number of
+   * 分区数 The required number of partitions for this distribution. If it's None, then any number of
    * partitions is allowed for this distribution.
    */
   def requiredNumPartitions: Option[Int]
 
   /**
-   * Creates a default partitioning for this distribution, which can satisfy this distribution while
+   * 为当前的 Distribution 创建默认的 partitioning Creates a default partitioning for this distribution, which can satisfy this distribution while
    * matching the given number of partitions.
    */
   def createPartitioning(numPartitions: Int): Partitioning
 }
 
 /**
- * Represents a distribution where no promises are made about co-location of data.
+ * 未制定分布，无需确定数据元组之间的位置关系 Represents a distribution where no promises are made about co-location of data.
  */
 case object UnspecifiedDistribution extends Distribution {
   override def requiredNumPartitions: Option[Int] = None
@@ -54,8 +54,8 @@ case object UnspecifiedDistribution extends Distribution {
 }
 
 /**
- * Represents a distribution that only has a single partition and all tuples of the dataset
- * are co-located.
+ * 只有一个分区，所有的数据元组存放在一起( Co-located)。 Represents a distribution that only has a single partition and all tuples of the dataset
+ * 例如，选取全局前 K条数据的 GlobalLimit算子， requiredChildDistribution得到的列表就是[AllTuples]，表示 执行该算子需要全部的数据参与。 are co-located.
  */
 case object AllTuples extends Distribution {
   override def requiredNumPartitions: Option[Int] = Some(1)
@@ -67,8 +67,8 @@ case object AllTuples extends Distribution {
 }
 
 /**
- * Represents data where tuples that share the same values for the `clustering`
- * [[Expression Expressions]] will be co-located in the same partition.
+ * 构造参数 clustering是 Seq[Expression]类型，起到了哈希函数的效果， 数据经过 clustering计算后，相同 value 的数据元组会被存放在一起( Co-located)。 如果有 多个分区的情况，则相同数据会被存放在同一个分区中 Represents data where tuples that share the same values for the `clustering`
+ * [[Expression Expressions]]例如， SortMerge类型的 Join操作中 requiredChildDistribution 列表就是[ClusteredDistribution(leftKeys), ClusteredDistribution(rightKeys)]， 表示左表数据 根据 le丘Keys 表达式计算分区，右表数据根据 rightKeys 表达式计算分区 will be co-located in the same partition.
  */
 case class ClusteredDistribution(
     clustering: Seq[Expression],
@@ -91,7 +91,7 @@ case class ClusteredDistribution(
  * Represents data where tuples have been clustered according to the hash of the given
  * `expressions`. The hash function is defined as `HashPartitioning.partitionIdExpression`, so only
  * [[HashPartitioning]] can satisfy this distribution.
- *
+ * hash 函数分布
  * This is a strictly stronger guarantee than [[ClusteredDistribution]]. Given a tuple and the
  * number of partitions, this distribution strictly requires which partition the tuple should be in.
  */
@@ -113,11 +113,11 @@ case class HashClusteredDistribution(
 }
 
 /**
- * Represents data where tuples have been ordered according to the `ordering`
+ * 构造参数 ordering是 Seq[SortOrder]类型，该分布意味着数据元组 会根据 ordering 计算后的结果排序 Represents data where tuples have been ordered according to the `ordering`
  * [[Expression Expressions]]. Its requirement is defined as the following:
  *   - Given any 2 adjacent partitions, all the rows of the second partition must be larger than or
  *     equal to any row in the first partition, according to the `ordering` expressions.
- *
+ * 例如，在全局排序的 Sort 算子中， requiredChildDistribution 得到的列 表是[OrderedDistribution(sortOrder)]，其中 sortOrder 是排序表达式 。 OrderedDistribution相对 ClusteredDistribution来讲要强一些，相同的数据 ordering计算结 果相同，因此能够保持连续性并被划分到相同分区中
  * In other words, this distribution requires the rows to be ordered across partitions, but not
  * necessarily within a partition.
  */
@@ -136,8 +136,8 @@ case class OrderedDistribution(ordering: Seq[SortOrder]) extends Distribution {
 }
 
 /**
- * Represents data where tuples are broadcasted to every node. It is quite common that the
- * entire set of tuples is transformed into different data structure.
+ * 广播分布，数据会被广播到所有节点上，构造参数mode为广播模式 (BroadcastMode)，广播模式可以为原始数据( IdentityBroadcastMode)或转换为 HashedRelation对象( HashedRelationBroadcastMode) Represents data where tuples are broadcasted to every node. It is quite common that the
+ * 如果是 Broadcast类型的 Join操作，假设 左表做广播，那么 requiredChildDistribution得到的列表就是[BroadcastDistribution(mode), UnspeciledDistribution]，表示左表为广播分布 entire set of tuples is transformed into different data structure.
  */
 case class BroadcastDistribution(mode: BroadcastMode) extends Distribution {
   override def requiredNumPartitions: Option[Int] = Some(1)
@@ -150,9 +150,9 @@ case class BroadcastDistribution(mode: BroadcastMode) extends Distribution {
 }
 
 /**
- * Describes how an operator's output is split across partitions. It has 2 major properties:
- *   1. number of partitions.
- *   2. if it can satisfy a given distribution.
+ * 描述数据的分区方式 Describes how an operator's output is split across partitions. It has 2 major properties:
+ *   分区数 1. number of partitions.
+ *   数据分布方式 2. if it can satisfy a given distribution.
  */
 trait Partitioning {
   /** Returns the number of partitions that the data is split across */
@@ -163,7 +163,7 @@ trait Partitioning {
    * to satisfy the partitioning scheme mandated by the `required` [[Distribution]],
    * i.e. the current dataset does not need to be re-partitioned for the `required`
    * Distribution (it is possible that tuples within a partition need to be reorganized).
-   *
+   * 当前的 Partitioning操作能否得到所需的数据分布(Required)。 当不满足时(结果为 false)， 一般需要进行 repartition操作，对数据进行重新组 织。
    * A [[Partitioning]] can never satisfy a [[Distribution]] if its `numPartitions` does't match
    * [[Distribution.requiredNumPartitions]].
    */
@@ -185,11 +185,11 @@ trait Partitioning {
     case _ => false
   }
 }
-
+// 不进行分区
 case class UnknownPartitioning(numPartitions: Int) extends Partitioning
 
 /**
- * Represents a partitioning where rows are distributed evenly across output partitions
+ * 在 1-numPartitions范图内轮询式分区 Represents a partitioning where rows are distributed evenly across output partitions
  * by starting from a random target partition number and distributing rows in a round-robin
  * fashion. This partitioning is used when implementing the DataFrame.repartition() operator.
  */
@@ -205,7 +205,7 @@ case object SinglePartition extends Partitioning {
 }
 
 /**
- * Represents a partitioning where rows are split up across partitions based on the hash
+ * 基于哈希的分区方式  Represents a partitioning where rows are split up across partitions based on the hash
  * of `expressions`.  All rows where `expressions` evaluate to the same values are guaranteed to be
  * in the same partition.
  */
@@ -245,7 +245,7 @@ case class HashPartitioning(expressions: Seq[Expression], numPartitions: Int)
  *
  * This is a strictly stronger guarantee than what `OrderedDistribution(ordering)` requires, as
  * there is no overlap between partitions.
- *
+ * 基于范围的分区方式
  * This class extends expression primarily so that transformations over expression will descend
  * into its child.
  */
@@ -297,7 +297,7 @@ case class RangePartitioning(ordering: Seq[SortOrder], numPartitions: Int)
  * this Join operator is partitioned, which are `HashPartitioning(A.key1)` and
  * `HashPartitioning(B.key2)`. It is also worth noting that `partitionings`
  * in this collection do not need to be equivalent, which is useful for
- * Outer Join operators.
+ * Outer Join operators. 分区方式的集合，描述物理算子的输出
  */
 case class PartitioningCollection(partitionings: Seq[Partitioning])
   extends Expression with Partitioning with Unevaluable {

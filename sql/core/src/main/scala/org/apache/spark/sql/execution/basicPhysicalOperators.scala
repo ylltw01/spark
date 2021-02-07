@@ -34,7 +34,7 @@ import org.apache.spark.sql.types.{LongType, StructType}
 import org.apache.spark.util.ThreadUtils
 import org.apache.spark.util.random.{BernoulliCellSampler, PoissonSampler}
 
-/** Physical plan for Project. */
+/** Physical plan for Project. 列裁剪 */
 case class ProjectExec(projectList: Seq[NamedExpression], child: SparkPlan)
   extends UnaryExecNode with CodegenSupport {
 
@@ -83,7 +83,7 @@ case class ProjectExec(projectList: Seq[NamedExpression], child: SparkPlan)
 }
 
 
-/** Physical plan for Filter. */
+/** Physical plan for Filter.  数据过滤 */
 case class FilterExec(condition: Expression, child: SparkPlan)
   extends UnaryExecNode with CodegenSupport with PredicateHelper {
 
@@ -230,7 +230,7 @@ case class FilterExec(condition: Expression, child: SparkPlan)
 
 /**
  * Physical plan for sampling the dataset.
- *
+ * 采样
  * @param lowerBound Lower-bound of the sampling probability (usually 0.0)
  * @param upperBound Upper-bound of the sampling probability. The expected fraction sampled
  *                   will be ub - lb.
@@ -334,7 +334,7 @@ case class SampleExec(
 
 
 /**
- * Physical plan for range (generating a range of 64 bit numbers).
+ * Physical plan for range (generating a range of 64 bit numbers). // 集合生成
  */
 case class RangeExec(range: org.apache.spark.sql.catalyst.plans.logical.Range)
   extends LeafExecNode with CodegenSupport {

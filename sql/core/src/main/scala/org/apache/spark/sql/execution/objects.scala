@@ -592,7 +592,7 @@ case class FlatMapGroupsInRWithArrowExec(
   }
 }
 
-/**
+/** 将两个要进行合并的左、右子 SparkP!an 所产生的 RDD，按照相同的 key值组合到一起，返回的 结果中包含两个!iterator (迭代器)，分别代表左子树中 的值与右子树中的值 。
  * Co-groups the data from left and right children, and calls the function with each group and 2
  * iterators containing all elements in the group from left and right side.
  * The result of this function is flattened before being output.

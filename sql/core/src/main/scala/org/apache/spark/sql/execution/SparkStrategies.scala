@@ -47,7 +47,7 @@ import org.apache.spark.sql.types.StructType
  * [[org.apache.spark.sql.sources]]
  */
 abstract class SparkStrategy extends GenericStrategy[SparkPlan] {
-
+  // 根据传入的 LogicalPlan直接生成前述提到的 PlanLater节点
   override protected def planLater(plan: LogicalPlan): SparkPlan = PlanLater(plan)
 }
 
@@ -64,7 +64,7 @@ abstract class SparkStrategies extends QueryPlanner[SparkPlan] {
   self: SparkPlanner =>
 
   /**
-   * Plans special cases of limit operators.
+   * 特殊 limit操作的执行计划   Plans special cases of limit operators.
    */
   object SpecialLimits extends Strategy {
     override def apply(plan: LogicalPlan): Seq[SparkPlan] = plan match {
@@ -133,7 +133,7 @@ abstract class SparkStrategies extends QueryPlanner[SparkPlan] {
    *      支持等值连接和非等值连接。
    *      仅支持 inner like joins.
    *     Supports both equi-joins and non-equi-joins.
-   *     Supports only inner like joins.
+   *    join 操作相 关 的执行计划   Supports only inner like joins.
    */
   object JoinSelection extends Strategy with PredicateHelper {
 
@@ -520,7 +520,7 @@ abstract class SparkStrategies extends QueryPlanner[SparkPlan] {
   }
 
   /**
-   * Used to plan the aggregate operator for expressions based on the AggregateFunction2 interface.
+   * 聚合算子相关的执行计划     Used to plan the aggregate operator for expressions based on the AggregateFunction2 interface.
    */
   object Aggregation extends Strategy {
     def apply(plan: LogicalPlan): Seq[SparkPlan] = plan match {
@@ -601,7 +601,7 @@ abstract class SparkStrategies extends QueryPlanner[SparkPlan] {
   }
 
   protected lazy val singleRowRdd = sparkContext.parallelize(Seq(InternalRow()), 1)
-
+  // 内存数据表扫描计划
   object InMemoryScans extends Strategy {
     def apply(plan: LogicalPlan): Seq[SparkPlan] = plan match {
       case PhysicalOperation(projectList, filters, mem: InMemoryRelation) =>
@@ -664,7 +664,7 @@ abstract class SparkStrategies extends QueryPlanner[SparkPlan] {
         Nil
     }
   }
-
+  // 对基本算子生成的执行计划 一对一的映射
   object BasicOperators extends Strategy {
     def apply(plan: LogicalPlan): Seq[SparkPlan] = plan match {
       case d: DataWritingCommand => DataWritingCommandExec(d, planLater(d.query)) :: Nil

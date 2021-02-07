@@ -22,14 +22,14 @@ import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.catalyst.trees.TreeNode
 
 /**
- * Given a [[LogicalPlan]], returns a list of `PhysicalPlan`s that can
+ * 物理执行计划各策略的抽象父类 Given a [[LogicalPlan]], returns a list of `PhysicalPlan`s that can
  * be used for execution. If this strategy does not apply to the given logical operation then an
  * empty list should be returned.
  */
 abstract class GenericStrategy[PhysicalPlan <: TreeNode[PhysicalPlan]] extends Logging {
 
   /**
-   * Returns a placeholder for a physical plan that executes `plan`. This placeholder will be
+   *  PlanLater 本身也是 SparkPlan 的一种，区别在于 doExecute()方法没有实现，表示不支持执行，所起到的作用仅仅是占位，等待后续步骤处理 Returns a placeholder for a physical plan that executes `plan`. This placeholder will be
    * filled in automatically by the QueryPlanner using the other execution strategies that are
    * available.
    */
@@ -55,11 +55,11 @@ abstract class GenericStrategy[PhysicalPlan <: TreeNode[PhysicalPlan]] extends L
 abstract class QueryPlanner[PhysicalPlan <: TreeNode[PhysicalPlan]] {
   /** A list of execution strategies that can be used by the planner */
   def strategies: Seq[GenericStrategy[PhysicalPlan]]
-
+  // 生成物理执行计划
   def plan(plan: LogicalPlan): Iterator[PhysicalPlan] = {
     // Obviously a lot to do here still...
 
-    // Collect physical plan candidates.
+    // 生成物理计划候选集合( Candidates) Collect physical plan candidates.
     val candidates = strategies.iterator.flatMap(_(plan))
 
     // The candidates may contain placeholders marked as [[planLater]],
@@ -74,7 +74,7 @@ abstract class QueryPlanner[PhysicalPlan <: TreeNode[PhysicalPlan]] {
         // Plan the logical plan marked as [[planLater]] and replace the placeholders.
         placeholders.iterator.foldLeft(Iterator(candidate)) {
           case (candidatesWithPlaceholders, (placeholder, logicalPlan)) =>
-            // Plan the logical plan for the placeholder.
+            //如果该集合中存在 PlanLater 类型的 SparkPlan， 则 通过 placeholder 中间变 量取 出对应的 LogicalPlan 后，递归调用 plan()方法，将 PlanLater 替换为子节点的物理计划   Plan the logical plan for the placeholder.
             val childPlans = this.plan(logicalPlan)
 
             candidatesWithPlaceholders.flatMap { candidateWithPlaceholders =>
@@ -88,7 +88,7 @@ abstract class QueryPlanner[PhysicalPlan <: TreeNode[PhysicalPlan]] {
         }
       }
     }
-
+    // 对物理计划列表进行过滤，去掉一些不够高效的物理计划
     val pruned = prunePlans(plans)
     assert(pruned.hasNext, s"No plan for $plan")
     pruned

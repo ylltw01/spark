@@ -256,7 +256,7 @@ class FindDataSourceTable(sparkSession: SparkSession) extends Rule[LogicalPlan] 
 
 
 /**
- * A Strategy for planning scans over data sources defined using the sources API.
+ * 各种数据源相关的计划 A Strategy for planning scans over data sources defined using the sources API.
  */
 case class DataSourceStrategy(conf: SQLConf) extends Strategy with Logging with CastSupport {
   import DataSourceStrategy._

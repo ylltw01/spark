@@ -25,7 +25,7 @@ import org.apache.spark.sql.catalyst.plans.physical.SinglePartition
 import org.apache.spark.sql.catalyst.util.truncatedString
 import org.apache.spark.sql.execution.{ColumnarBatchScan, LeafExecNode, WholeStageCodegenExec}
 import org.apache.spark.sql.sources.v2.reader.{InputPartition, PartitionReaderFactory, Scan, SupportsReportPartitioning}
-
+// V2 数据源，structured streaming 用到
 trait DataSourceV2ScanExecBase extends LeafExecNode with ColumnarBatchScan {
 
   def scan: Scan

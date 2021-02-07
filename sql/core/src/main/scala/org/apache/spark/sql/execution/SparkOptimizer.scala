@@ -23,7 +23,7 @@ import org.apache.spark.sql.catalyst.optimizer.Optimizer
 import org.apache.spark.sql.execution.datasources.PruneFileSourcePartitions
 import org.apache.spark.sql.execution.datasources.SchemaPruning
 import org.apache.spark.sql.execution.python.{ExtractPythonUDFFromAggregate, ExtractPythonUDFs}
-
+// 默认实现的 Optimizer 逻辑执行计划优化
 class SparkOptimizer(
     catalog: SessionCatalog,
     experimentalMethods: ExperimentalMethods)

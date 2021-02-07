@@ -37,7 +37,7 @@ import org.apache.spark.sql.internal.{SQLConf, StaticSQLConf}
 import org.apache.spark.util.{SparkFatalException, ThreadUtils}
 
 /**
- * A [[BroadcastExchangeExec]] collects, transforms and finally broadcasts the result of
+ * 广播操作  A [[BroadcastExchangeExec]] collects, transforms and finally broadcasts the result of
  * a transformed SparkPlan.
  */
 case class BroadcastExchangeExec(

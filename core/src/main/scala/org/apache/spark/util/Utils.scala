@@ -502,7 +502,7 @@ private[spark] object Utils extends Logging {
         url,
         cachedFile,
         targetFile,
-        conf.getBoolean("spark.files.overwrite", false)
+        conf.getBoolean("spark.files.overwrite", false) // 出现如后面问题，将该参数设置为true，即可。 org.apache.spark.SparkException: File ./standard-plugin-meta-1.0-SNAPSHOT.jar exists and does not match contents of spark://145.com:36779/jars/standard-plugin-meta-1.0-SNAPSHOT.jar
       )
     } else {
       doFetchFile(url, targetDir, fileName, conf, securityMgr, hadoopConf)

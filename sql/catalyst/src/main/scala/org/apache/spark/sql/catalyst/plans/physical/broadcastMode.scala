@@ -20,7 +20,7 @@ package org.apache.spark.sql.catalyst.plans.physical
 import org.apache.spark.sql.catalyst.InternalRow
 
 /**
- * Marker trait to identify the shape in which tuples are broadcasted. Typical examples of this are
+ * 广播模式接口，子类包含HashedRelationBroadcastMode（BroadCastHashJoin）和 IdentityBroadcastMode（BroadcastNestedLoopJoinExec） Marker trait to identify the shape in which tuples are broadcasted. Typical examples of this are
  * identity (tuples remain unchanged) or hashed (tuples are converted into some hash index).
  */
 trait BroadcastMode {
@@ -32,7 +32,7 @@ trait BroadcastMode {
 }
 
 /**
- * IdentityBroadcastMode requires that rows are broadcasted in their original form.
+ * BroadcastNestedLoopJoinExec 使用模式，直接转化为数组 IdentityBroadcastMode requires that rows are broadcasted in their original form.
  */
 case object IdentityBroadcastMode extends BroadcastMode {
   // TODO: pack the UnsafeRows into single bytes array.

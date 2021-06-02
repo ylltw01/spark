@@ -189,7 +189,7 @@ trait Partitioning {
 case class UnknownPartitioning(numPartitions: Int) extends Partitioning
 
 /**
- * 在 1-numPartitions范图内轮询式分区 Represents a partitioning where rows are distributed evenly across output partitions
+ * 在 1-numPartitions范图内轮询式分区, 比如：logical.Repartition 在 SparkStrategy 中 BasicOperators 规则，替换为 RoundRobinPartitioning。  Represents a partitioning where rows are distributed evenly across output partitions
  * by starting from a random target partition number and distributing rows in a round-robin
  * fashion. This partitioning is used when implementing the DataFrame.repartition() operator.
  */

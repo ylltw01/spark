@@ -31,7 +31,7 @@ import org.apache.spark.sql.execution.metric.SQLMetrics
 import org.apache.spark.sql.types.{BooleanType, LongType}
 
 /**
- * Performs an inner hash join of two child relations.  When the output RDD of this operator is
+ * 广播HashJoin 执行计划 Performs an inner hash join of two child relations.  When the output RDD of this operator is
  * being constructed, a Spark job is asynchronously started to calculate the values for the
  * broadcast relation.  This data is then placed in a Spark broadcast variable.  The streamed
  * relation is not shuffled.
@@ -48,7 +48,7 @@ case class BroadcastHashJoinExec(
 
   override lazy val metrics = Map(
     "numOutputRows" -> SQLMetrics.createMetric(sparkContext, "number of output rows"))
-
+  // 根据build端，其子节点数据分布需要为 HashedRelationBroadcastMode 加 UnspecifiedDistribution
   override def requiredChildDistribution: Seq[Distribution] = {
     val mode = HashedRelationBroadcastMode(buildKeys)
     buildSide match {
@@ -61,12 +61,12 @@ case class BroadcastHashJoinExec(
 
   protected override def doExecute(): RDD[InternalRow] = {
     val numOutputRows = longMetric("numOutputRows")
-
+    // 执行 BroadcastExchangeExec 广播 build 表数据，返回 broadcast 变量
     val broadcastRelation = buildPlan.executeBroadcast[HashedRelation]()
     streamedPlan.execute().mapPartitions { streamedIter =>
       val hashed = broadcastRelation.value.asReadOnlyCopy()
-      TaskContext.get().taskMetrics().incPeakExecutionMemory(hashed.estimatedSize)
-      join(streamedIter, hashed, numOutputRows)
+      TaskContext.get().taskMetrics().incPeakExecutionMemory(hashed.estimatedSize) // 记录内存
+      join(streamedIter, hashed, numOutputRows) // 执行join
     }
   }
 

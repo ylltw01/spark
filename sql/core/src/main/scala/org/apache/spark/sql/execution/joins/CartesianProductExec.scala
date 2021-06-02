@@ -38,11 +38,11 @@ class UnsafeCartesianRDD(
     inMemoryBufferThreshold: Int,
     spillThreshold: Int)
   extends CartesianRDD[UnsafeRow, UnsafeRow](left.sparkContext, left, right) {
-
+  // 方法根据 CartesianRDD.getPartitions()，返回分区m * n 个分区，对每个分区进行数据 m * n 计算
   override def compute(split: Partition, context: TaskContext): Iterator[(UnsafeRow, UnsafeRow)] = {
     val rowArray = new ExternalAppendOnlyUnsafeRowArray(inMemoryBufferThreshold, spillThreshold)
 
-    val partition = split.asInstanceOf[CartesianPartition]
+    val partition = split.asInstanceOf[CartesianPartition] // CartesianPartition 包含rdd1分区，rdd2分区
     rdd2.iterator(partition.s2, context).foreach(rowArray.add)
 
     // Create an iterator from rowArray
@@ -50,7 +50,7 @@ class UnsafeCartesianRDD(
 
     val resultIter =
       for (x <- rdd1.iterator(partition.s1, context);
-           y <- createIter()) yield (x, y)
+           y <- createIter()) yield (x, y) // 生成 m * n 数据
     CompletionIterator[(UnsafeRow, UnsafeRow), Iterator[(UnsafeRow, UnsafeRow)]](
       resultIter, rowArray.clear())
   }

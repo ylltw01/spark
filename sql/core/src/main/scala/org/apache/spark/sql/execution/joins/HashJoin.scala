@@ -25,7 +25,7 @@ import org.apache.spark.sql.catalyst.plans.physical.Partitioning
 import org.apache.spark.sql.execution.{RowIterator, SparkPlan}
 import org.apache.spark.sql.execution.metric.SQLMetric
 import org.apache.spark.sql.types.{IntegralType, LongType}
-
+// hashJoin 系列接口 BroadcastHashJoinExec 和 ShuffledHashJoinExec 父接口
 trait HashJoin {
   self: SparkPlan =>
 
@@ -36,7 +36,7 @@ trait HashJoin {
   val condition: Option[Expression]
   val left: SparkPlan
   val right: SparkPlan
-
+// 输出列
   override def output: Seq[Attribute] = {
     joinType match {
       case _: InnerLike =>
@@ -53,14 +53,14 @@ trait HashJoin {
         throw new IllegalArgumentException(s"HashJoin should not take $x as the JoinType")
     }
   }
-
+// 输出分区为基表分区
   override def outputPartitioning: Partitioning = streamedPlan.outputPartitioning
-
+// 根据build 端，决定基表和build 表
   protected lazy val (buildPlan, streamedPlan) = buildSide match {
     case BuildLeft => (left, right)
     case BuildRight => (right, left)
   }
-
+// 根据build 端，决定基表和build 表的关联key
   protected lazy val (buildKeys, streamedKeys) = {
     require(leftKeys.map(_.dataType) == rightKeys.map(_.dataType),
       "Join keys from two sides should have same types")
@@ -189,7 +189,7 @@ trait HashJoin {
       })
     }
   }
-
+// 执行join 操作
   protected def join(
       streamedIter: Iterator[InternalRow],
       hashed: HashedRelation,

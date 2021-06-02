@@ -44,7 +44,7 @@ class CartesianPartition(
     oos.defaultWriteObject()
   }
 }
-
+// 笛卡尔积基类RDD
 private[spark]
 class CartesianRDD[T: ClassTag, U: ClassTag](
     sc: SparkContext,
@@ -54,13 +54,13 @@ class CartesianRDD[T: ClassTag, U: ClassTag](
   with Serializable {
 
   val numPartitionsInRdd2 = rdd2.partitions.length
-
+  // 返回笛卡尔积所有分区，该方法最终会返回 m * n 个分区
   override def getPartitions: Array[Partition] = {
     // create the cross product split
     val array = new Array[Partition](rdd1.partitions.length * rdd2.partitions.length)
     for (s1 <- rdd1.partitions; s2 <- rdd2.partitions) {
       val idx = s1.index * numPartitionsInRdd2 + s2.index
-      array(idx) = new CartesianPartition(idx, rdd1, rdd2, s1.index, s2.index)
+      array(idx) = new CartesianPartition(idx, rdd1, rdd2, s1.index, s2.index) // 例如rdd1分区数为2, rdd2分区数为2。则会返回(0,1),(0,2),(1,1)(1,2) 分区
     }
     array
   }
@@ -75,7 +75,7 @@ class CartesianRDD[T: ClassTag, U: ClassTag](
     for (x <- rdd1.iterator(currSplit.s1, context);
          y <- rdd2.iterator(currSplit.s2, context)) yield (x, y)
   }
-
+  // 生成依赖，窄依赖
   override def getDependencies: Seq[Dependency[_]] = List(
     new NarrowDependency(rdd1) {
       def getParents(id: Int): Seq[Int] = List(id / numPartitionsInRdd2)

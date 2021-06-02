@@ -212,7 +212,7 @@ case class EnsureRequirements(conf: SQLConf) extends Rule[SparkPlan] {
       // If child.outputOrdering already satisfies the requiredOrdering, we do not need to sort.
       if (SortOrder.orderingSatisfies(child.outputOrdering, requiredOrdering)) {
         child
-      } else {
+      } else { // 比如在SortMergeJoinExec中，是需要子节点计划有序的，则需要添加 SortExec 节点
         SortExec(requiredOrdering, global = false, child = child)
       }
     }
@@ -270,7 +270,7 @@ case class EnsureRequirements(conf: SQLConf) extends Rule[SparkPlan] {
   }
 
   /**
-   * When the physical operators are created for JOIN, the ordering of join keys is based on order
+   * 当是join类型的执行计划，计算排序key    When the physical operators are created for JOIN, the ordering of join keys is based on order
    * in which the join keys appear in the user query. That might not match with the output
    * partitioning of the join node's children (thus leading to extra sort / shuffle being
    * introduced). This rule will change the ordering of the join keys to match with the
@@ -300,7 +300,7 @@ case class EnsureRequirements(conf: SQLConf) extends Rule[SparkPlan] {
         case lower: HashPartitioning if upper.semanticEquals(lower) => child
         case _ => operator
       }
-    case operator: SparkPlan =>
+    case operator: SparkPlan => // 确定执行计划的分布和排序
       ensureDistributionAndOrdering(reorderJoinPredicates(operator))
   }
 }

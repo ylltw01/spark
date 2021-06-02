@@ -44,7 +44,7 @@ case class BroadcastNestedLoopJoinExec(
     case BuildRight => (left, right)
     case BuildLeft => (right, left)
   }
-
+  // 根据build端，其子节点数据分布需要为 BroadcastDistribution(IdentityBroadcastMode) 加 UnspecifiedDistribution
   override def requiredChildDistribution: Seq[Distribution] = buildSide match {
     case BuildLeft =>
       BroadcastDistribution(IdentityBroadcastMode) :: UnspecifiedDistribution :: Nil
@@ -131,7 +131,7 @@ case class BroadcastNestedLoopJoinExec(
         private var resultRow: InternalRow = null
         // the next index of buildRows to try
         private var nextIndex: Int = 0
-
+        // 循环匹配，直到匹配完毕或者匹配到数据
         private def findNextMatch(): Boolean = {
           if (streamRow == null) {
             if (!streamedIter.hasNext) {
@@ -338,9 +338,9 @@ case class BroadcastNestedLoopJoinExec(
       sparkContext.makeRDD(notMatchedBroadcastRows)
     )
   }
-
+  // 执行 join
   protected override def doExecute(): RDD[InternalRow] = {
-    val broadcastedRelation = broadcast.executeBroadcast[Array[InternalRow]]()
+    val broadcastedRelation = broadcast.executeBroadcast[Array[InternalRow]]() // 执行广播job，提交job，拉取数据到 driver 端 BroadcastExchangeExec
 
     val resultRdd = (joinType, buildSide) match {
       case (_: InnerLike, _) =>

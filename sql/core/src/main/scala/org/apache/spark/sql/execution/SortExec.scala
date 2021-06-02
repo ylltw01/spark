@@ -100,7 +100,7 @@ case class SortExec(
     val peakMemory = longMetric("peakMemory")
     val spillSize = longMetric("spillSize")
     val sortTime = longMetric("sortTime")
-
+   // 执行分区排序
     child.execute().mapPartitionsInternal { iter =>
       val sorter = createSorter()
 

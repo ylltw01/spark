@@ -34,8 +34,8 @@ import org.apache.spark.unsafe.map.BytesToBytesMap
 import org.apache.spark.util.{KnownSizeEstimation, Utils}
 
 /**
- * Interface for a hashed relation by some key. Use [[HashedRelation.apply]] to create a concrete
- * object.
+ * Interface for a hashed relation by some key. Use [[HashedRelation.apply]] to create a concrete      KnownSizeEstimation可预估大小
+ * object. 该接口支持根据 key获取匹配到的 InternalRow 迭代器或单行数据。Key 的类型除常见的 InternalRow 外，还支持Long数据类型。
  */
 private[execution] sealed trait HashedRelation extends KnownSizeEstimation {
   /**
@@ -101,10 +101,10 @@ private[execution] object HashedRelation {
           1),
         0)
     }
-
+    // 仅当build 表，key 长度为1，且 buildKey 的类型为 long，为 LongHashedRelation
     if (key.length == 1 && key.head.dataType == LongType) {
       LongHashedRelation(input, key, sizeEstimate, mm)
-    } else {
+    } else { // 其他情况用 UnsafeHashedRelation
       UnsafeHashedRelation(input, key, sizeEstimate, mm)
     }
   }
@@ -839,7 +839,7 @@ private[joins] object LongHashedRelation {
 /** The HashedRelationBroadcastMode requires that rows are broadcasted as a HashedRelation. */
 private[execution] case class HashedRelationBroadcastMode(key: Seq[Expression])
   extends BroadcastMode {
-
+// HashedRelationBroadcastMode，将 build 端数据构建为 HashedRelation
   override def transform(rows: Array[InternalRow]): HashedRelation = {
     transform(rows.iterator, Some(rows.length))
   }

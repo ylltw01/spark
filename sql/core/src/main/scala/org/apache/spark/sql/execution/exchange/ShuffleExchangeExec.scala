@@ -88,7 +88,7 @@ case class ShuffleExchangeExec(
   }
 
   /**
-   * Returns a [[ShuffleDependency]] that will partition rows of its child based on
+   * 初始化 ShuffleDependency    Returns a [[ShuffleDependency]] that will partition rows of its child based on
    * the partitioning scheme defined in `newPartitioning`. Those partitions of
    * the returned ShuffleDependency will be the input of shuffle.
    */
@@ -117,7 +117,7 @@ case class ShuffleExchangeExec(
     specifiedPartitionStartIndices.foreach { indices =>
       assert(newPartitioning.isInstanceOf[HashPartitioning])
       newPartitioning = UnknownPartitioning(indices.length)
-    }
+    } // shuffle 完毕 shuffleReader 读取数据
     new ShuffledRowRDD(shuffleDependency, readMetrics, specifiedPartitionStartIndices)
   }
 
@@ -135,8 +135,8 @@ case class ShuffleExchangeExec(
           assert(shuffleRDD.partitions.length == newPartitioning.numPartitions)
           shuffleRDD
         case _ =>
-          val shuffleDependency = prepareShuffleDependency()
-          preparePostShuffleRDD(shuffleDependency)
+          val shuffleDependency = prepareShuffleDependency() // 初始化 ShuffleDependency，为宽依赖
+          preparePostShuffleRDD(shuffleDependency)  //
       }
     }
     cachedShuffleRDD
@@ -161,7 +161,7 @@ object ShuffleExchangeExec {
    * have to rely on knowledge of core internals here in SQL.
    *
    * See SPARK-2967, SPARK-4479, and SPARK-7375 for more discussion of this issue.
-   *
+   * 制定在shuffle 之前是否需要 copy rdd。在现在版本中，几乎不用copy，SPARK-7081 Tungsten 计划已经实现了在序列化缓存中排序。SPARK-7081 说明了这点。
    * @param partitioner the partitioner for the shuffle
    * @return true if rows should be copied before being shuffled, false otherwise
    */
@@ -218,14 +218,14 @@ object ShuffleExchangeExec {
     : ShuffleDependency[Int, InternalRow, InternalRow] = {
     val part: Partitioner = newPartitioning match {
       case RoundRobinPartitioning(numPartitions) => new HashPartitioner(numPartitions)
-      case HashPartitioning(_, n) =>
+      case HashPartitioning(_, n) => // 对于 HashPartitioning，比如 ShuffledHashJoinExec 和 SortMergeJoinExec
         new Partitioner {
-          override def numPartitions: Int = n
+          override def numPartitions: Int = n // 对于 HashPartitioning，partitioning key 就是分区id
           // For HashPartitioning, the partitioning key is already a valid partition ID, as we use
           // `HashPartitioning.partitionIdExpression` to produce partitioning key.
           override def getPartition(key: Any): Int = key.asInstanceOf[Int]
         }
-      case RangePartitioning(sortingExpressions, numPartitions) =>
+      case RangePartitioning(sortingExpressions, numPartitions) => // 比如全局排序
         // Extract only fields used for sorting to avoid collecting large fields that does not
         // affect sorting result when deciding partition bounds in RangePartitioner
         val rddForSampling = rdd.mapPartitionsInternal { iter =>
@@ -272,17 +272,17 @@ object ShuffleExchangeExec {
       case SinglePartition => identity
       case _ => sys.error(s"Exchange not implemented for $newPartitioning")
     }
-
+    // RoundRobinPartitioning 且 分区数大于1
     val isRoundRobin = newPartitioning.isInstanceOf[RoundRobinPartitioning] &&
       newPartitioning.numPartitions > 1
 
     val rddWithPartitionIds: RDD[Product2[Int, InternalRow]] = {
       // [SPARK-23207] Have to make sure the generated RoundRobinPartitioning is deterministic,
       // otherwise a retry task may output different rows and thus lead to data loss.
-      //
+      // 为了保证 RoundRobinPartitioning 下准确性，重执行task 可能导致输出行不一致且可能会导致数据丢失，因此此处在分区之前先进行本地排序来避免这个问题
       // Currently we following the most straight-forward way that perform a local sort before
       // partitioning.
-      //
+      // 当分区数只有1的时候，不排序
       // Note that we don't perform local sort if the new partitioning has only 1 partition, under
       // that case all output rows go to the same partition.
       val newRdd = if (isRoundRobin && SQLConf.get.sortBeforeRepartition) {
@@ -321,7 +321,7 @@ object ShuffleExchangeExec {
         rdd
       }
 
-      // round-robin function is order sensitive if we don't sort the input.
+      // RoundRobinPartitioning 排序敏感。   round-robin function is order sensitive if we don't sort the input.
       val isOrderSensitive = isRoundRobin && !SQLConf.get.sortBeforeRepartition
       if (needToCopyObjectsBeforeShuffle(part)) {
         newRdd.mapPartitionsWithIndexInternal((_, iter) => {
@@ -332,21 +332,20 @@ object ShuffleExchangeExec {
         newRdd.mapPartitionsWithIndexInternal((_, iter) => {
           val getPartitionKey = getPartitionKeyExtractor()
           val mutablePair = new MutablePair[Int, InternalRow]()
-          iter.map { row => mutablePair.update(part.getPartition(getPartitionKey(row)), row) }
+          iter.map { row => mutablePair.update(part.getPartition(getPartitionKey(row)), row) } // 根据分区key和策略计算partition 和 row
         }, isOrderSensitive = isOrderSensitive)
       }
     }
 
-    // Now, we manually create a ShuffleDependency. Because pairs in rddWithPartitionIds
+    // 创建 ShuffleDependency   。 Now, we manually create a ShuffleDependency. Because pairs in rddWithPartitionIds
     // are in the form of (partitionId, row) and every partitionId is in the expected range
     // [0, part.numPartitions - 1]. The partitioner of this is a PartitionIdPassthrough.
     val dependency =
       new ShuffleDependency[Int, InternalRow, InternalRow](
-        rddWithPartitionIds,
+        rddWithPartitionIds, // partitionId，rdd
         new PartitionIdPassthrough(part.numPartitions),
         serializer,
-        shuffleWriterProcessor = createShuffleWriteProcessor(writeMetrics))
-
+        shuffleWriterProcessor = createShuffleWriteProcessor(writeMetrics)) // shuffle write 程序，ShuffleMapTask 会写数据
     dependency
   }
 

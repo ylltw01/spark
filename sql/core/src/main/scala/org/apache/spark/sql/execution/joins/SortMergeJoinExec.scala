@@ -77,7 +77,7 @@ case class SortMergeJoinExec(
       throw new IllegalArgumentException(
         s"${getClass.getSimpleName} should not take $x as the JoinType")
   }
-
+  // 需要子节点计划的数据分布是Hash
   override def requiredChildDistribution: Seq[Distribution] =
     HashClusteredDistribution(leftKeys) :: HashClusteredDistribution(rightKeys) :: Nil
 
@@ -121,7 +121,7 @@ case class SortMergeJoinExec(
       requiredOrdering
     }
   }
-
+  // 需要子节点计划排序是有序的
   override def requiredChildOrdering: Seq[Seq[SortOrder]] =
     requiredOrders(leftKeys) :: requiredOrders(rightKeys) :: Nil
 
@@ -135,15 +135,15 @@ case class SortMergeJoinExec(
 
   private def createRightKeyGenerator(): Projection =
     UnsafeProjection.create(rightKeys, right.output)
-
+  // 默认 spark.sql.sortMergeJoinExec.buffer.spill.threshold = Integer.MAX_VALUE
   private def getSpillThreshold: Int = {
     sqlContext.conf.sortMergeJoinExecBufferSpillThreshold
   }
-
+  // 默认 spark.sql.sortMergeJoinExec.buffer.in.memory.threshold = Integer.MAX_VALUE - 15
   private def getInMemoryThreshold: Int = {
     sqlContext.conf.sortMergeJoinExecBufferInMemoryThreshold
   }
-
+  // SortMergeJoinScanner 关键类
   protected override def doExecute(): RDD[InternalRow] = {
     val numOutputRows = longMetric("numOutputRows")
     val spillThreshold = getSpillThreshold
@@ -211,7 +211,7 @@ case class SortMergeJoinExec(
           }.toScala
 
         case LeftOuter =>
-          val smjScanner = new SortMergeJoinScanner(
+          val smjScanner = new SortMergeJoinScanner( // SortMergeJoinScanner 关键类
             streamedKeyGenerator = createLeftKeyGenerator(),
             bufferedKeyGenerator = createRightKeyGenerator(),
             keyOrdering,
@@ -652,15 +652,15 @@ case class SortMergeJoinExec(
  * methods return mutable objects which are re-used across calls to the `findNext*JoinRows()`
  * methods.
  *
- * @param streamedKeyGenerator a projection that produces join keys from the streamed input.
- * @param bufferedKeyGenerator a projection that produces join keys from the buffered input.
- * @param keyOrdering an ordering which can be used to compare join keys.
- * @param streamedIter an input whose rows will be streamed.
- * @param bufferedIter an input whose rows will be buffered to construct sequences of rows that
+ * @param streamedKeyGenerator 流式表的 join key a projection that produces join keys from the streamed input.
+ * @param bufferedKeyGenerator 缓存表的 join key a projection that produces join keys from the buffered input.
+ * @param keyOrdering 排序字段用于对比 an ordering which can be used to compare join keys.
+ * @param streamedIter 流式表数据  an input whose rows will be streamed.
+ * @param bufferedIter 缓存表数据  an input whose rows will be buffered to construct sequences of rows that
  *                     have the same join key.
- * @param inMemoryThreshold Threshold for number of rows guaranteed to be held in memory by
+ * @param inMemoryThreshold  缓存阈值    Threshold for number of rows guaranteed to be held in memory by
  *                          internal buffer
- * @param spillThreshold Threshold for number of rows to be spilled by internal buffer
+ * @param spillThreshold  溢写磁盘的缓存阈值 Threshold for number of rows to be spilled by internal buffer
  */
 private[joins] class SortMergeJoinScanner(
     streamedKeyGenerator: Projection,
@@ -687,13 +687,13 @@ private[joins] class SortMergeJoinScanner(
   advancedBufferedToRowWithNullFreeJoinKey()
 
   // --- Public methods ---------------------------------------------------------------------------
-
+  // 获取当前满足 Join 条件的单个 streamedRow
   def getStreamedRow: InternalRow = streamedRow
-
+  // 获取当前满足 Join 条件的多个 bufferedRow (以数组形式缓存)
   def getBufferedMatches: ExternalAppendOnlyUnsafeRowArray = bufferedMatches
 
   /**
-   * Advances both input iterators, stopping when we have found rows with matching join keys.
+   * findNextlnnerJoinRows用来得到满足 InnerJoin条件的数据   Advances both input iterators, stopping when we have found rows with matching join keys.
    * @return true if matching rows have been found and false otherwise. If this returns true, then
    *         [[getStreamedRow]] and [[getBufferedMatches]] can be called to construct the join
    *         results.
@@ -746,7 +746,7 @@ private[joins] class SortMergeJoinScanner(
   }
 
   /**
-   * Advances the streamed input iterator and buffers all rows from the buffered input that
+   * 且ndNextOuterJoinRows用来得到满足 OuterJoin条件的数据   Advances the streamed input iterator and buffers all rows from the buffered input that
    * have matching keys.
    * @return true if the streamed iterator returned a row, false otherwise. If this returns true,
    *         then [[getStreamedRow]] and [[getBufferedMatches]] can be called to produce the outer
@@ -958,7 +958,7 @@ private abstract class OneSideOuterIterator(
 
   override def getRow: InternalRow = resultProj(joinedRow)
 }
-
+// 是专门用于 Full Outer 类型的 Join 执行时查找匹配数据的核心类
 private class SortMergeFullOuterJoinScanner(
     leftKeyGenerator: Projection,
     rightKeyGenerator: Projection,

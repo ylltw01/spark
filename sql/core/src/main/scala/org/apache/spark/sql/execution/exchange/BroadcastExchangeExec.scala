@@ -37,7 +37,7 @@ import org.apache.spark.sql.internal.{SQLConf, StaticSQLConf}
 import org.apache.spark.util.{SparkFatalException, ThreadUtils}
 
 /**
- * 广播操作  A [[BroadcastExchangeExec]] collects, transforms and finally broadcasts the result of
+ * 广播数据重分区执行计划，执行数据广播  A [[BroadcastExchangeExec]] collects, transforms and finally broadcasts the result of
  * a transformed SparkPlan.
  */
 case class BroadcastExchangeExec(
@@ -68,14 +68,14 @@ case class BroadcastExchangeExec(
     val task = new Callable[broadcast.Broadcast[Any]]() {
       override def call(): broadcast.Broadcast[Any] = {
         // This will run in another thread. Set the execution id so that we can connect these jobs
-        // with the correct execution.
+        // with the correct execution. 异步提交一个任务执行 action，将 build 表 collect 到 Driver 端
         SQLExecution.withExecutionId(sqlContext.sparkSession, executionId) {
           try {
             // Setup a job group here so later it may get cancelled by groupId if necessary.
             sparkContext.setJobGroup(runId.toString, s"broadcast exchange (runId $runId)",
               interruptOnCancel = true)
             val beforeCollect = System.nanoTime()
-            // Use executeCollect/executeCollectIterator to avoid conversion to Scala types
+            // 使用 executeCollectIterator 执行 collect 操作 Use executeCollect/executeCollectIterator to avoid conversion to Scala types
             val (numRows, input) = child.executeCollectIterator()
             if (numRows >= 512000000) {
               throw new SparkException(
@@ -85,7 +85,7 @@ case class BroadcastExchangeExec(
             val beforeBuild = System.nanoTime()
             longMetric("collectTime") += NANOSECONDS.toMillis(beforeBuild - beforeCollect)
 
-            // Construct the relation.
+            // 构建hashMap 或数组结构，根据其实现来   Construct the relation.
             val relation = mode.transform(input, Some(numRows))
 
             val dataSize = relation match {
@@ -107,7 +107,7 @@ case class BroadcastExchangeExec(
             val beforeBroadcast = System.nanoTime()
             longMetric("buildTime") += NANOSECONDS.toMillis(beforeBroadcast - beforeBuild)
 
-            // Broadcast the relation
+            // 广播Map结构 Broadcast the relation
             val broadcasted = sparkContext.broadcast(relation)
             longMetric("broadcastTime") += NANOSECONDS.toMillis(
               System.nanoTime() - beforeBroadcast)
@@ -138,12 +138,12 @@ case class BroadcastExchangeExec(
     // Materialize the future.
     relationFuture
   }
-
+  // 该执行计划不能执行
   override protected def doExecute(): RDD[InternalRow] = {
     throw new UnsupportedOperationException(
       "BroadcastExchange does not support the execute() code path.")
   }
-
+  // 执行 broadcast 操作
   override protected[sql] def doExecuteBroadcast[T](): broadcast.Broadcast[T] = {
     try {
       relationFuture.get(timeout, TimeUnit.SECONDS).asInstanceOf[broadcast.Broadcast[T]]

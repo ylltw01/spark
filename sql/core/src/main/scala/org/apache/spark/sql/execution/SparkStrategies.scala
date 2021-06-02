@@ -133,7 +133,7 @@ abstract class SparkStrategies extends QueryPlanner[SparkPlan] {
    *      支持等值连接和非等值连接。
    *      仅支持 inner like joins.
    *     Supports both equi-joins and non-equi-joins.
-   *    join 操作相 关 的执行计划   Supports only inner like joins.
+   *  spark 3.0 版本   join 操作相 关 的执行计划   Supports only inner like joins.
    */
   object JoinSelection extends Strategy with PredicateHelper {
 
@@ -265,9 +265,9 @@ abstract class SparkStrategies extends QueryPlanner[SparkPlan] {
       //      other choice.
       case ExtractEquiJoinKeys(joinType, leftKeys, rightKeys, condition, left, right, hint) =>
         def createBroadcastHashJoin(buildLeft: Boolean, buildRight: Boolean) = {
-          // 根据join type 判断左表是否可以广播，并且左表的hits 为 broadcast
+          // 根据join type 判断左表是否可以广播，并且参数 buildLeft 为true
           val wantToBuildLeft = canBuildLeft(joinType) && buildLeft
-          // 根据join type 判断右表是否可以广播，并且右表的hits 为 broadcast
+          // 根据join type 判断右表是否可以广播，并且参数 buildRight 为true
           val wantToBuildRight = canBuildRight(joinType) && buildRight
           getBuildSide(wantToBuildLeft, wantToBuildRight, left, right).map { buildSide =>
             Seq(joins.BroadcastHashJoinExec(

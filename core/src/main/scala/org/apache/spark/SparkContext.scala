@@ -1422,12 +1422,12 @@ class SparkContext(config: SparkConf) extends Logging {
   }
 
   /**
-   * Broadcast a read-only variable to the cluster, returning a
+   * 广播 value 到集群中所有节点中，Broadcast a read-only variable to the cluster, returning a
    * [[org.apache.spark.broadcast.Broadcast]] object for reading it in distributed functions.
    * The variable will be sent to each cluster only once.
    *
    * @param value value to broadcast to the Spark nodes
-   * @return `Broadcast` object, a read-only variable cached on each machine
+   * @return 缓存在集群中的只读变量Broadcast     `Broadcast` object, a read-only variable cached on each machine
    */
   def broadcast[T: ClassTag](value: T): Broadcast[T] = {
     assertNotStopped()

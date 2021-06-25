@@ -2258,10 +2258,10 @@ private[spark] object Utils extends Logging {
       } catch {
         case e: Exception if isBindCollision(e) =>
           if (offset >= maxRetries) {
-            val exceptionMessage = if (startPort == 0) {
-              s"${e.getMessage}: Service$serviceString failed after " +
-                s"$maxRetries retries (on a random free port)! " +
-                s"Consider explicitly setting the appropriate binding address for " +
+            val exceptionMessage = if (startPort == 0) { // Spark 启动的时候报这个错误呢，需要去检查hosts 配置，如果出现多个host 配置了同一个 ip，
+              s"${e.getMessage}: Service$serviceString failed after " + // 而且当前host 还不再第一个，可能出现这个问题。
+                s"$maxRetries retries (on a random free port)! " + // 解决办法呢，可以去掉多余的host 或者把当前host 放首位。
+                s"Consider explicitly setting the appropriate binding address for " + // 或者直接指定 spark.driver.bindAddress 为当前 Driver ip
                 s"the service$serviceString (for example ${DRIVER_BIND_ADDRESS.key} " +
                 s"for SparkDriver) to the correct binding address."
             } else {

@@ -223,3 +223,26 @@ case class StreamingExplainCommand(
     ("Error occurred during query planning: \n" + cause.getMessage).split("\n").map(Row(_))
   }
 }
+
+/*
+Command
+  1. RunnableCommand (包含 ddl，dml 等)
+
+  2. DataWritingCommand
+        2.1. CreateDataSourceTableAsSelectCommand(table: CatalogTable,) => create table user_t_partition_12 as select(具体语法还没测出来)
+        CreateHiveTableAsSelectBase(tableDesc: CatalogTable,) => 2.4.3 之前是没有的
+            2.2. CreateHiveTableAsSelectCommand(tableDesc: CatalogTable,)  => create table user_t_partition_12 as select
+            2.3. OptimizedCreateHiveTableAsSelectCommand(tableDesc: CatalogTable,) => 2.4.3 之前是没有的
+        InsertIntoHadoopFsRelationCommand => (输出文件不考虑)
+        SaveAsHiveFile
+            InsertIntoHiveDirCommand => (输出文件不考虑) INSERT OVERWRITE [LOCAL] DIRECTORY
+            2.4. InsertIntoHiveTable(table: CatalogTable,)  => insert overwrite table user_t_partition PARTITION (dt)
+
+  3. V2WriteCommand(table: NamedRelation) => 2.4.3 之前是没有的
+        3.1. AppendData(table: NamedRelation,) => 2.4.0 开始
+        3.2. OverwriteByExpression(table: NamedRelation,) => 2.4.3 之前是没有的
+        3.3. OverwritePartitionsDynamic(table: NamedRelation,) => 2.4.3 之前是没有的
+
+  4. CreateTableAsSelect(catalog: TableCatalog,) => 2.4.3 之前是没有的
+
+ */

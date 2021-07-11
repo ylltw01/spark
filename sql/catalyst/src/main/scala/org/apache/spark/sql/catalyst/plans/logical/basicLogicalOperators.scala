@@ -48,7 +48,7 @@ case class ReturnAnswer(child: LogicalPlan) extends UnaryNode {
 case class Subquery(child: LogicalPlan) extends OrderPreservingUnaryNode {
   override def output: Seq[Attribute] = child.output
 }
-
+// 在 Project 中，使用的是 NamedExpression 系列
 case class Project(projectList: Seq[NamedExpression], child: LogicalPlan)
     extends OrderPreservingUnaryNode {
   override def output: Seq[Attribute] = projectList.map(_.toAttribute)

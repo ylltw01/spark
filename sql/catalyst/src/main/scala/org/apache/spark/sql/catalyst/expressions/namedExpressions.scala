@@ -56,13 +56,13 @@ object ExprId {
 }
 
 /**
- * An [[Expression]] that is named.
+ * 命名表达式 An [[Expression]] that is named.
  */
 trait NamedExpression extends Expression {
 
   /** We should never fold named expressions in order to not remove the alias. */
   override def foldable: Boolean = false
-
+// 输出名字和id，如 name#12
   def name: String
   def exprId: ExprId
 
